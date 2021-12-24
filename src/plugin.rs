@@ -33,7 +33,7 @@ use glam::Vec3;
 use kajiya::backend::RenderBackend;
 use kajiya::backend::vulkan::RenderBackendConfig;
 use kajiya::ui_renderer::UiRenderer;
-use kajiya::world_renderer::{WorldRenderer, AddMeshOptions};
+use kajiya::{world_renderer::WorldRenderer, backend::{file::set_standard_vfs_mount_points, set_vfs_mount_point}};
 use turbosloth::LazyCache;
 use std::ops::{Deref, DerefMut};
 use std::sync::{Mutex, Arc};
@@ -97,8 +97,15 @@ pub struct KajiyaRendererApp;
 struct ScratchRenderWorld(World);
 
 impl Plugin for KajiyaRendererPlugin {
+    
     /// Initializes the renderer, sets up the [`KajiyaRenderStage`](KajiyaRenderStage) and creates the rendering sub-app.
     fn build(&self, app: &mut App) {
+        // Point `kajiya` to standard assets and shaders in the parent directory
+        set_standard_vfs_mount_points("./bevy-kajiya/kajiya");
+
+        // Game-specific assets in the current directory
+        set_vfs_mount_point("/baked", "./baked");
+
         let WindowConfig {
             raw_window_handle,
             swapchain_extent,

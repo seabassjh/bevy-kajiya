@@ -363,6 +363,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "bevy-kajiya"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "bevy",
+ "glam 0.18.0",
+ "imgui",
+ "kajiya",
+ "kajiya-imgui",
+ "log",
+ "puffin",
+ "ron 0.6.6",
+ "serde",
+ "structopt",
+ "turbosloth",
+ "winit 0.25.0",
+]
+
+[[package]]
 name = "bevy_app"
 version = "0.5.0"
 dependencies = [
@@ -560,25 +579,6 @@ dependencies = [
  "bevy_window",
  "bevy_winit",
  "ndk-glue 0.5.0",
-]
-
-[[package]]
-name = "bevy_kajiya_renderer"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "bevy",
- "glam 0.18.0",
- "imgui",
- "kajiya",
- "kajiya-imgui",
- "log",
- "puffin",
- "ron 0.6.6",
- "serde",
- "structopt",
- "turbosloth",
- "winit 0.25.0",
 ]
 
 [[package]]

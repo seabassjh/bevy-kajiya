@@ -88,11 +88,6 @@ pub fn setup_scene_view(
     scene: Res<KajiyaSceneDescriptor>, 
     render_context: Res<RenderContext>,
 ) {
-    // Point `kajiya` to standard assets and shaders in the parent directory
-    set_standard_vfs_mount_points("./bevy_kajiya_renderer/kajiya");
-
-    // Game-specific assets in the current directory
-    set_vfs_mount_point("/baked", "./baked");
 
     let scene_view_state: SceneViewState = ron::de::from_reader(
         File::open(SCENE_VIEW_STATE_CONFIG_FILE_PATH)
