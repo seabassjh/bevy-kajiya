@@ -1,11 +1,18 @@
 use std::fs::File;
 
-use bevy::prelude::{Component, Bundle, Commands, NonSendMut, Res, ResMut, Query};
-use glam::{Vec3, Quat};
-use kajiya::{world_renderer::{InstanceHandle, WorldRenderer, AddMeshOptions, MeshHandle}, backend::{file::set_standard_vfs_mount_points, set_vfs_mount_point}, frame_desc::WorldFrameDesc, camera::{CameraLens, LookThroughCamera}};
-use structopt::StructOpt;
+use bevy::prelude::{Bundle, Commands, Component, NonSendMut, Query, Res, ResMut};
+use glam::{Quat, Vec3};
+use kajiya::{
+    camera::{CameraLens, LookThroughCamera},
+    frame_desc::WorldFrameDesc,
+    world_renderer::{AddMeshOptions, InstanceHandle, MeshHandle},
+};
 
-use crate::{renderer::{FrameContext, KajiyaRenderers, RenderContext}, camera::{ExtractedCamera, KajiyaCamera, ExtractedEnvironment}, KajiyaSceneDescriptor};
+use crate::{
+    camera::{ExtractedCamera, ExtractedEnvironment, KajiyaCamera},
+    renderer::{KajiyaRenderers, RenderContext},
+    KajiyaSceneDescriptor,
+};
 
 const SCENE_VIEW_STATE_CONFIG_FILE_PATH: &str = "view_state.ron";
 
@@ -50,13 +57,13 @@ pub struct LocalLightsState {
 
 #[derive(Clone, serde::Serialize, serde::Deserialize)]
 pub struct SceneViewState {
-   pub camera_position: Vec3,
-   pub camera_rotation: Quat,
-   pub vertical_fov: f32,
-   pub emissive_multiplier: f32,
-   pub sun: SunState,
-   pub lights: LocalLightsState,
-   pub ev_shift: f32,
+    pub camera_position: Vec3,
+    pub camera_rotation: Quat,
+    pub vertical_fov: f32,
+    pub emissive_multiplier: f32,
+    pub sun: SunState,
+    pub lights: LocalLightsState,
+    pub ev_shift: f32,
 }
 
 #[derive(Component)]
@@ -83,21 +90,24 @@ pub struct MeshInstanceBaked {
 }
 
 pub fn setup_scene_view(
-    mut commands: Commands, 
-    wr_res: NonSendMut<KajiyaRenderers>, 
-    scene: Res<KajiyaSceneDescriptor>, 
+    mut commands: Commands,
+    wr_res: NonSendMut<KajiyaRenderers>,
+    scene: Res<KajiyaSceneDescriptor>,
     render_context: Res<RenderContext>,
 ) {
-
     let scene_view_state: SceneViewState = ron::de::from_reader(
-        File::open(SCENE_VIEW_STATE_CONFIG_FILE_PATH)
-        .expect(&format!("Kajiya error: failed to read init scene state config {}", SCENE_VIEW_STATE_CONFIG_FILE_PATH))
-    ).expect("Kajiya error: failed to read init scene state config .ron");
+        File::open(SCENE_VIEW_STATE_CONFIG_FILE_PATH).expect(&format!(
+            "Kajiya error: failed to read init scene state config {}",
+            SCENE_VIEW_STATE_CONFIG_FILE_PATH
+        )),
+    )
+    .expect("Kajiya error: failed to read init scene state config .ron");
 
     let scene_file = format!("assets/scenes/{}.ron", scene.scene_file_name);
     let scene_desc: SceneDesc = ron::de::from_reader(
-        File::open(&scene_file).expect("Kajiya error: Could not open scene description file")
-    ).expect("Kajiya error: Could not read description file");
+        File::open(&scene_file).expect("Kajiya error: Could not open scene description file"),
+    )
+    .expect("Kajiya error: Could not read description file");
     let mut world_renderer = wr_res.world_renderer.lock().unwrap();
 
     world_renderer.world_gi_scale = scene.gi_volume_scale;
@@ -128,7 +138,10 @@ pub fn setup_scene_view(
             aspect_ratio: render_context.aspect_ratio(),
             ..Default::default()
         },
-        transform: (scene_view_state.camera_position, scene_view_state.camera_rotation),
+        transform: (
+            scene_view_state.camera_position,
+            scene_view_state.camera_rotation,
+        ),
         environment: ExtractedEnvironment::default(),
     };
 
@@ -153,8 +166,12 @@ pub fn update_scene_view(
     wr_res: NonSendMut<KajiyaRenderers>,
     mut frame_desc: ResMut<WorldFrameDesc>,
     extracted_camera: Res<ExtractedCamera>,
-    mut query: Query<(&mut MeshInstanceHandles, &mut MeshInstanceTransform, &MeshInstanceBaked)>)
-{
+    mut query: Query<(
+        &mut MeshInstanceHandles,
+        &mut MeshInstanceTransform,
+        &MeshInstanceBaked,
+    )>,
+) {
     // Update WorldFrameDescription
     let lens = CameraLens {
         aspect_ratio: extracted_camera.camera.aspect_ratio,
@@ -171,35 +188,34 @@ pub fn update_scene_view(
 
         // If MeshInstance exists, handle any updates for it, otherwise, instance it
         if let Some(instance_handle) = mesh_handles.instance_handle {
-
             // MeshInstance exists, if there's a new transform, update the instance transform
             if let Some((new_pos, new_rot)) = mesh_transform.transform.take() {
                 println!("SET MESH TRANSFORM {:?}", (new_pos, new_rot));
 
-                world_renderer.set_instance_transform(
-                    instance_handle,
-                    new_pos,
-                    new_rot,
-                );
+                world_renderer.set_instance_transform(instance_handle, new_pos, new_rot);
             }
         } else {
             // MeshInstance has not been instanced in the world renderer yet, instance it
-            let mesh = world_renderer.add_baked_mesh(
-                format!("/baked/{}.mesh", mesh_baked.file_name),
-                AddMeshOptions::new(),
-            ).expect(&format!("Kajiya error: could not find baked mesh {}", mesh_baked.file_name));
+            let mesh = world_renderer
+                .add_baked_mesh(
+                    format!("/baked/{}.mesh", mesh_baked.file_name),
+                    AddMeshOptions::new(),
+                )
+                .expect(&format!(
+                    "Kajiya error: could not find baked mesh {}",
+                    mesh_baked.file_name
+                ));
 
             let (pos, rot) = mesh_transform.transform.take().unwrap();
-            let instance_handle = world_renderer.add_instance(
-                mesh,
-                pos,
-                rot,
-            );
+            let instance_handle = world_renderer.add_instance(mesh, pos, rot);
 
             mesh_handles.instance_handle = Some(instance_handle);
             mesh_handles.mesh_handle = Some(mesh);
-            println!("ADD MESH {} with trans {:?}", mesh_baked.file_name, (pos, rot));
-
+            println!(
+                "ADD MESH {} with trans {:?}",
+                mesh_baked.file_name,
+                (pos, rot)
+            );
         }
     }
 }

@@ -1,5 +1,5 @@
-use bevy::prelude::{Component, Bundle, Commands, Transform, Query, ResMut, DetectChanges};
-use glam::{Vec3, Quat};
+use bevy::prelude::*;
+use glam::{Quat, Vec3};
 
 use crate::{plugin::RenderWorld, scene::SunState};
 
@@ -60,7 +60,7 @@ pub fn extract_camera(
     if let Some((camera, transform, environment_settings)) = query.iter().next() {
         let pos = transform.translation;
         let rot = transform.rotation;
-        
+
         let extracted_pos = Vec3::new(pos.x, pos.y, pos.z);
         let extracted_rot = Quat::from_xyzw(rot.x, rot.y, rot.z, rot.w);
 
@@ -68,10 +68,7 @@ pub fn extract_camera(
         extracted_camera.transform = (extracted_pos, extracted_rot);
         let (theta, phi) = environment_settings.sun_theta_phi;
         extracted_camera.environment = ExtractedEnvironment {
-            sun_theta_phi: SunState {
-                theta,
-                phi,
-            },
+            sun_theta_phi: SunState { theta, phi },
         };
     }
 }

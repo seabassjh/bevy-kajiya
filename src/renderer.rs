@@ -1,22 +1,9 @@
-use std::sync::{Arc, Mutex};
-
-use bevy::{window::HasRawWindowHandleWrapper, prelude::App};
-use kajiya::{world_renderer::WorldRenderer, ui_renderer::UiRenderer, backend::{RenderBackend, vulkan::RenderBackendConfig}, frame_desc::WorldFrameDesc, rg::{self, renderer::Renderer}};
-use turbosloth::LazyCache;
-use winit::{event_loop::{EventLoop, ControlFlow}, window::{WindowBuilder, Fullscreen}, event::{WindowEvent, Event}, platform::run_return::EventLoopExtRunReturn};
-
-pub(crate) struct FrameContext<'a> {
-    pub dt_filtered: f32,
-    pub render_extent: [u32; 2],
-    pub events: &'a [WindowEvent<'static>],
-    pub world_renderer: &'a mut WorldRenderer,
-}
-
-impl<'a> FrameContext<'a> {
-    pub fn aspect_ratio(&self) -> f32 {
-        self.render_extent[0] as f32 / self.render_extent[1] as f32
-    }
-}
+use bevy::{prelude::App, window::HasRawWindowHandleWrapper};
+use kajiya::{
+    backend::RenderBackend, rg::renderer::Renderer, ui_renderer::UiRenderer,
+    world_renderer::WorldRenderer,
+};
+use std::sync::Mutex;
 
 pub struct KajiyaRenderers {
     pub world_renderer: Mutex<WorldRenderer>,
@@ -58,9 +45,7 @@ impl WindowConfig {
         let windows = world.get_resource_mut::<bevy::window::Windows>().unwrap();
         let window = windows.get_primary().unwrap().clone();
 
-        let raw_window_handle = unsafe {
-            window.raw_window_handle().get_handle()
-        };
+        let raw_window_handle = unsafe { window.raw_window_handle().get_handle() };
 
         // TODO: make configurable
         let temporal_upsampling = 1.0;

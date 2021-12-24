@@ -1,10 +1,10 @@
-use bevy::{ecs::prelude::*, core::Time};
+use bevy::ecs::prelude::*;
 use kajiya::{frame_desc::WorldFrameDesc, rg};
 
-use crate::renderer::{RenderContext, KajiyaRenderers, KajiyaRGRenderer, KajiyaRenderBackend};
+use crate::renderer::{KajiyaRGRenderer, KajiyaRenderBackend, KajiyaRenderers, RenderContext};
 
 pub fn render_frame(
-    wr_res: NonSendMut<KajiyaRenderers>, 
+    wr_res: NonSendMut<KajiyaRenderers>,
     mut rg_renderer: NonSendMut<KajiyaRGRenderer>,
     mut render_ctx: ResMut<RenderContext>,
     frame_desc: Res<WorldFrameDesc>,
@@ -15,7 +15,7 @@ pub fn render_frame(
     let mut ui_renderer = wr_res.ui_renderer.lock().unwrap();
 
     let rg_renderer = &mut rg_renderer.rg_renderer;
-    let render_backend =  &mut render_backend.render_backend;
+    let render_backend = &mut render_backend.render_backend;
 
     let dt_filtered = {
         let now = std::time::Instant::now();

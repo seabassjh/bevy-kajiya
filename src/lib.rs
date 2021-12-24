@@ -1,14 +1,12 @@
-use bevy::{prelude::*, app::PluginGroupBuilder};
-mod renderer;
-mod frame;
-mod scene;
-mod plugin;
+use bevy::{app::PluginGroupBuilder, prelude::*};
 mod camera;
+mod frame;
+mod plugin;
+mod renderer;
+mod scene;
 
+pub use camera::{EnvironmentSettings, KajiyaCamera, KajiyaCameraBundle};
 pub use plugin::KajiyaRendererPlugin;
-pub use camera::EnvironmentSettings;
-pub use camera::KajiyaCamera;
-pub use camera::KajiyaCameraBundle;
 
 pub struct KajiyaRendererDefaultPlugins;
 
@@ -37,6 +35,9 @@ pub struct KajiyaSceneDescriptor {
 
 impl Default for KajiyaSceneDescriptor {
     fn default() -> Self {
-        Self { scene_file_name: DEFAULT_SCENE_NAME.to_string(), gi_volume_scale: 1.0 }
+        Self {
+            scene_file_name: DEFAULT_SCENE_NAME.to_string(),
+            gi_volume_scale: 1.0,
+        }
     }
 }
