@@ -1,17 +1,17 @@
 use std::fs::File;
 
-use bevy::prelude::{Bundle, Commands, Component, NonSendMut, Query, Res, ResMut};
-use glam::{Quat, Vec3};
+use bevy::{prelude::{Bundle, Commands, Component, NonSendMut, Query, Res, ResMut, Entity, Transform, With, Changed}, utils::HashMap};
+use glam::{Quat, Vec3, Vec2};
 use kajiya::{
     camera::{CameraLens, LookThroughCamera},
     frame_desc::WorldFrameDesc,
-    world_renderer::{AddMeshOptions, InstanceHandle, MeshHandle},
+    world_renderer::{AddMeshOptions, InstanceHandle, MeshHandle, WorldRenderer},
 };
 
 use crate::{
     camera::{ExtractedCamera, ExtractedEnvironment, KajiyaCamera},
     renderer::{KajiyaRenderers, RenderContext},
-    KajiyaSceneDescriptor,
+    KajiyaSceneDescriptor, plugin::RenderWorld,
 };
 
 const SCENE_VIEW_STATE_CONFIG_FILE_PATH: &str = "view_state.ron";
@@ -103,7 +103,7 @@ pub fn setup_scene_view(
     )
     .expect("Kajiya error: failed to read init scene state config .ron");
 
-    let scene_file = format!("assets/scenes/{}.ron", scene.scene_file_name);
+    let scene_file = format!("assets/scenes/{}.ron", scene.scene_name);
     let scene_desc: SceneDesc = ron::de::from_reader(
         File::open(&scene_file).expect("Kajiya error: Could not open scene description file"),
     )
@@ -220,28 +220,54 @@ pub fn update_scene_view(
     }
 }
 
+pub struct RenderInstance {
+    instance_handle: InstanceHandle,
+    transform: (Vec3, Quat),
+}
+
+pub struct RenderInstances {
+    map: HashMap<Entity, RenderInstance>,
+}
+
+
+#[derive(Component, Clone)]
+pub struct KajiyaMeshInstance {
+    mesh_name: String,
+}
+
+#[derive(Component, Clone)]
+pub struct KajiyaMeshInstanceExtracted {
+    entity: Entity,
+    mesh_name: String,
+    transform: (Vec3, Quat),
+}
+
+#[derive(Bundle, Clone)]
+pub struct KajiyaMeshInstanceExtractedBundle {
+    mesh_instance: KajiyaMeshInstanceExtracted,
+}
+
 // TODO: query for KajiyaMeshInstance(s) and internal render entity accordingly
 // NOTE: don't forget to drain entities before next cycle to avoid entity duplicates
-pub fn extract_meshes() {
-    // for instance in scene_desc.instances {
-    //     let position = instance.position.into();
-    //     let rotation = Quat::IDENTITY;
+pub fn extract_meshes(query: Query<(Entity, &Transform, &KajiyaMeshInstance), (Changed<Transform>, With<KajiyaMeshInstance>)>, mut render_world: ResMut<RenderWorld>) {
+    // let mut render_instances_map = render_world.get_resource_mut::<RenderInstances>().unwrap();
 
-    //     let mesh_instance = MeshInstanceExtracted {
-    //         handles: MeshInstanceHandles {
-    //             mesh_handle: None,
-    //             instance_handle: None,
-    //         },
-    //         transform: MeshInstanceTransform {
-    //             transform: Some((position, rotation)),
-    //         },
-    //         baked: MeshInstanceBaked {
-    //             file_name: instance.mesh,
-    //         },
-    //     };
+    let mut mesh_instances: Vec<KajiyaMeshInstanceExtractedBundle> = vec![];
+    for (entity, transform, mesh_instance_comp) in query.iter() {
+        let pos = transform.translation;
+        let rot = transform.rotation;
 
-    //     mesh_instances.push(mesh_instance);
-    // }
+        let extracted_pos = Vec3::new(pos.x, pos.y, pos.z);
+        let extracted_rot = Quat::from_xyzw(rot.x, rot.y, rot.z, rot.w);
+        mesh_instances.push(KajiyaMeshInstanceExtractedBundle {
+            mesh_instance: KajiyaMeshInstanceExtracted {
+                entity: entity,
+                mesh_name: mesh_instance_comp.mesh_name.clone(),
+                transform: (extracted_pos, extracted_rot),
+            }
+        });
+    }
 
+    render_world.spawn_batch(mesh_instances);
     // commands.spawn_batch(mesh_instances);
 }

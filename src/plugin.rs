@@ -150,7 +150,7 @@ impl Plugin for KajiyaRendererPlugin {
                 KajiyaRenderStage::Extract,
                 SystemStage::parallel()
                     .with_system(extract_camera)
-                    .with_system(extract_meshes),
+                    // .with_system(extract_meshes),
             )
             .add_stage(
                 KajiyaRenderStage::Prepare,

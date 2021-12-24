@@ -29,14 +29,14 @@ impl PluginGroup for KajiyaRendererDefaultPlugins {
 
 #[derive(Clone)]
 pub struct KajiyaSceneDescriptor {
-    pub scene_file_name: String,
+    pub scene_name: String,
     pub gi_volume_scale: f32,
 }
 
 impl Default for KajiyaSceneDescriptor {
     fn default() -> Self {
         Self {
-            scene_file_name: DEFAULT_SCENE_NAME.to_string(),
+            scene_name: DEFAULT_SCENE_NAME.to_string(),
             gi_volume_scale: 1.0,
         }
     }
