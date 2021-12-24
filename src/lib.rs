@@ -1,13 +1,14 @@
 use bevy::{prelude::*, app::PluginGroupBuilder};
-mod kajiya_simple;
 mod renderer;
 mod frame;
 mod scene;
-pub mod camera;
 mod plugin;
+mod camera;
 
-pub use anyhow;
 pub use plugin::KajiyaRendererPlugin;
+pub use camera::EnvironmentSettings;
+pub use camera::KajiyaCamera;
+pub use camera::KajiyaCameraBundle;
 
 pub struct KajiyaRendererDefaultPlugins;
 
