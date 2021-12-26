@@ -363,6 +363,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "bevy-crevice-derive"
+version = "0.5.0"
+dependencies = [
+ "bevy_macro_utils",
+ "proc-macro2 1.0.34",
+ "quote 1.0.10",
+ "syn 1.0.82",
+]
+
+[[package]]
 name = "bevy-kajiya"
 version = "0.1.0"
 dependencies = [
@@ -456,6 +466,16 @@ dependencies = [
  "bevy_core",
  "bevy_ecs",
  "bevy_render",
+]
+
+[[package]]
+name = "bevy_crevice"
+version = "0.5.0"
+dependencies = [
+ "bevy-crevice-derive",
+ "bytemuck",
+ "glam 0.20.2",
+ "mint",
 ]
 
 [[package]]
@@ -628,7 +648,6 @@ dependencies = [
  "bevy_window",
  "bitflags",
  "bytemuck",
- "crevice",
  "wgpu",
 ]
 
@@ -666,6 +685,7 @@ dependencies = [
  "bevy_app",
  "bevy_asset",
  "bevy_core",
+ "bevy_crevice",
  "bevy_derive",
  "bevy_ecs",
  "bevy_math",
@@ -674,7 +694,7 @@ dependencies = [
  "bevy_utils",
  "bevy_window",
  "bitflags",
- "crevice",
+ "codespan-reporting",
  "downcast-rs",
  "futures-lite",
  "hex",
@@ -723,7 +743,6 @@ dependencies = [
  "bevy_transform",
  "bevy_utils",
  "bytemuck",
- "crevice",
  "guillotiere",
  "rectangle-pack",
  "serde",
@@ -797,7 +816,6 @@ dependencies = [
  "bevy_utils",
  "bevy_window",
  "bytemuck",
- "crevice",
  "serde",
  "smallvec",
  "stretch",
@@ -1348,25 +1366,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "738c290dfaea84fc1ca15ad9c168d083b05a714e1efddd8edaab678dc28d2836"
 dependencies = [
  "cfg-if 1.0.0",
-]
-
-[[package]]
-name = "crevice"
-version = "0.8.0"
-dependencies = [
- "bytemuck",
- "crevice-derive",
- "glam 0.20.2",
- "mint",
-]
-
-[[package]]
-name = "crevice-derive"
-version = "0.8.0"
-dependencies = [
- "proc-macro2 1.0.34",
- "quote 1.0.10",
- "syn 1.0.82",
 ]
 
 [[package]]
@@ -1980,6 +1979,7 @@ checksum = "9a5e5bb97bf9a0d9519a28cf38839cf1d6d9bb572b48e3c67202271fec2ed5e7"
 dependencies = [
  "core-foundation 0.6.4",
  "io-kit-sys",
+ "js-sys",
  "libc",
  "libudev-sys",
  "log",
@@ -1988,6 +1988,7 @@ dependencies = [
  "stdweb 0.4.20",
  "uuid",
  "vec_map",
+ "web-sys",
  "winapi 0.3.9",
 ]
 
@@ -2601,6 +2602,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "830d08ce1d1d941e6b30645f1a0eb5643013d835ce3779a5fc208261dbe10f55"
 
 [[package]]
+name = "lewton"
+version = "0.10.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "777b48df9aaab155475a83a7df3070395ea1ac6902f5cd062b8f2b028075c030"
+dependencies = [
+ "byteorder",
+ "ogg",
+ "tinyvec",
+]
+
+[[package]]
 name = "libc"
 version = "0.2.112"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2764,26 +2776,6 @@ name = "minimal-lexical"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "68354c5c6bd36d73ff3feceb05efa59b6acb7626617f4962be322a825e61f79a"
-
-[[package]]
-name = "minimp3"
-version = "0.5.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "985438f75febf74c392071a975a29641b420dd84431135a6e6db721de4b74372"
-dependencies = [
- "minimp3-sys",
- "slice-deque",
- "thiserror",
-]
-
-[[package]]
-name = "minimp3-sys"
-version = "0.3.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e21c73734c69dc95696c9ed8926a2b393171d98b3f5f5935686a26a487ab9b90"
-dependencies = [
- "cc",
-]
 
 [[package]]
 name = "miniz_oxide"
@@ -3302,6 +3294,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "ogg"
+version = "0.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6951b4e8bf21c8193da321bcce9c9dd2e13c858fe078bf9054a288b419ae5d6e"
+dependencies = [
+ "byteorder",
+]
+
+[[package]]
 name = "once_cell"
 version = "1.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3678,7 +3679,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4d98f5e557b61525057e2bc142c8cd7f0e70d75dc32852309bec440e6e046bf9"
 dependencies = [
  "cpal",
- "minimp3",
+ "lewton",
 ]
 
 [[package]]
@@ -3914,17 +3915,6 @@ name = "slab"
 version = "0.4.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9def91fd1e018fe007022791f865d0ccc9b3a0d5001e01aabb8b40e46000afb5"
-
-[[package]]
-name = "slice-deque"
-version = "0.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "31ef6ee280cdefba6d2d0b4b78a84a1c1a3f3a4cec98c2d4231c8bc225de0f25"
-dependencies = [
- "libc",
- "mach 0.3.2",
- "winapi 0.3.9",
-]
 
 [[package]]
 name = "slotmap"
@@ -4256,6 +4246,21 @@ dependencies = [
  "libc",
  "winapi 0.3.9",
 ]
+
+[[package]]
+name = "tinyvec"
+version = "1.5.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2c1c1d5a42b6245520c249549ec267180beaffcc0615401ac8e31853d4b6d8d2"
+dependencies = [
+ "tinyvec_macros",
+]
+
+[[package]]
+name = "tinyvec_macros"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cda74da7e1a664f795bb1f8a87ec406fb89a02522cf6e50620d016add6dbbf5c"
 
 [[package]]
 name = "toml"

@@ -16,12 +16,12 @@ use std::ops::{Deref, DerefMut};
 use std::sync::Mutex;
 use turbosloth::LazyCache;
 
-use crate::camera::extract_camera;
+use crate::{camera::extract_camera, mesh::extract_meshes};
 use crate::frame::render_frame;
 use crate::renderer::{
     KajiyaRGRenderer, KajiyaRenderBackend, KajiyaRenderers, RenderContext, WindowConfig,
 };
-use crate::scene::{extract_meshes, setup_scene_view, update_scene_view};
+use crate::scene::{setup_scene_view, update_scene_view};
 use crate::KajiyaSceneDescriptor;
 
 /// Contains the Bevy interface to the Kajiya renderer.
@@ -150,7 +150,7 @@ impl Plugin for KajiyaRendererPlugin {
                 KajiyaRenderStage::Extract,
                 SystemStage::parallel()
                     .with_system(extract_camera)
-                    // .with_system(extract_meshes),
+                    .with_system(extract_meshes),
             )
             .add_stage(
                 KajiyaRenderStage::Prepare,

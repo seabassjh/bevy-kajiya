@@ -1,10 +1,12 @@
 use bevy::{app::PluginGroupBuilder, prelude::*};
 mod camera;
 mod frame;
+mod mesh;
 mod plugin;
 mod renderer;
 mod scene;
 
+pub use mesh::{KajiyaMesh, KajiyaMeshInstance, KajiyaMeshInstanceBundle};
 pub use camera::{EnvironmentSettings, KajiyaCamera, KajiyaCameraBundle};
 pub use plugin::KajiyaRendererPlugin;
 

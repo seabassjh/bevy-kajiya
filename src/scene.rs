@@ -1,7 +1,13 @@
 use std::fs::File;
 
-use bevy::{prelude::{Bundle, Commands, Component, NonSendMut, Query, Res, ResMut, Entity, Transform, With, Changed}, utils::HashMap};
-use glam::{Quat, Vec3, Vec2};
+use bevy::{
+    prelude::{
+        Bundle, Changed, Commands, Component, Entity, NonSendMut, Query, Res, ResMut, Transform,
+        With,
+    },
+    utils::HashMap,
+};
+use glam::{Quat, Vec2, Vec3};
 use kajiya::{
     camera::{CameraLens, LookThroughCamera},
     frame_desc::WorldFrameDesc,
@@ -10,8 +16,10 @@ use kajiya::{
 
 use crate::{
     camera::{ExtractedCamera, ExtractedEnvironment, KajiyaCamera},
+    mesh::{MeshInstanceExtracted, RenderInstance, RenderInstances, MeshInstanceExtractedBundle, MeshInstanceType},
+    plugin::RenderWorld,
     renderer::{KajiyaRenderers, RenderContext},
-    KajiyaSceneDescriptor, plugin::RenderWorld,
+    KajiyaSceneDescriptor, KajiyaMesh,
 };
 
 #[derive(serde::Deserialize)]
@@ -76,7 +84,7 @@ pub struct MeshInstanceTransform {
 }
 
 #[derive(Bundle)]
-pub struct MeshInstanceExtracted {
+pub struct SceneMeshInstanceExtracted {
     pub handles: MeshInstanceHandles,
     pub transform: MeshInstanceTransform,
     pub baked: MeshInstanceBaked,
@@ -102,25 +110,18 @@ pub fn setup_scene_view(
 
     world_renderer.world_gi_scale = scene.gi_volume_scale;
 
-    let mut mesh_instances = vec![];
-    for instance in scene_desc.instances {
+    let mut scene_instances = Vec::new();
+    for (indx, instance) in scene_desc.instances.iter().enumerate() {
         let position = instance.position.into();
         let rotation = Quat::IDENTITY;
 
-        let mesh_instance = MeshInstanceExtracted {
-            handles: MeshInstanceHandles {
-                mesh_handle: None,
-                instance_handle: None,
+        scene_instances.push(MeshInstanceExtractedBundle {
+            mesh_instance: MeshInstanceExtracted {
+                instance_type: MeshInstanceType::SceneInstanced(indx),
+                mesh_name: instance.mesh.clone(),
+                transform: (position, rotation),
             },
-            transform: MeshInstanceTransform {
-                transform: Some((position, rotation)),
-            },
-            baked: MeshInstanceBaked {
-                file_name: instance.mesh,
-            },
-        };
-
-        mesh_instances.push(mesh_instance);
+        });
     }
 
     let extracted_camera = ExtractedCamera {
@@ -142,7 +143,13 @@ pub fn setup_scene_view(
         sun_direction: extracted_camera.environment.sun_theta_phi.direction(),
     };
 
-    commands.spawn_batch(mesh_instances);
+    let render_instances = RenderInstances {
+        user_instances: HashMap::default(),
+        scene_instances: HashMap::default(),
+    };
+
+    commands.spawn_batch(scene_instances);
+    commands.insert_resource(render_instances);
     commands.insert_resource(frame_desc);
     commands.insert_resource(extracted_camera);
 }
@@ -151,12 +158,95 @@ pub fn update_scene_view(
     wr_res: NonSendMut<KajiyaRenderers>,
     mut frame_desc: ResMut<WorldFrameDesc>,
     extracted_camera: Res<ExtractedCamera>,
-    mut query: Query<(
-        &mut MeshInstanceHandles,
-        &mut MeshInstanceTransform,
-        &MeshInstanceBaked,
-    )>,
+    mut render_instances: ResMut<RenderInstances>,
+    query_extracted_instances: Query<&MeshInstanceExtracted>,
 ) {
+    let mut world_renderer = wr_res.world_renderer.lock().unwrap();
+
+    for extracted_instance in query_extracted_instances.iter() {
+        let (new_pos, new_rot) = extracted_instance.transform;
+        match &extracted_instance.instance_type {
+            MeshInstanceType::UserInstanced(entity) => {
+                if let Some(render_instance) = render_instances.user_instances.get(&entity) {
+                    println!(
+                        "UPDATE MESH {} TRANSFORM {:?}",
+                        extracted_instance.mesh_name,
+                        (new_pos, new_rot)
+                    );
+        
+                    world_renderer.set_instance_transform(
+                        render_instance.instance_handle,
+                        new_pos,
+                        new_rot,
+                    );
+                } else {
+                    let mesh = world_renderer
+                        .add_baked_mesh(
+                            format!("/baked/{}.mesh", extracted_instance.mesh_name),
+                            AddMeshOptions::new(),
+                        )
+                        .expect(&format!(
+                            "Kajiya error: could not find baked mesh {}",
+                            extracted_instance.mesh_name
+                        ));
+        
+                    render_instances.user_instances.insert(
+                        *entity,
+                        RenderInstance {
+                            instance_handle: world_renderer.add_instance(mesh, new_pos, new_rot),
+                            transform: (new_pos, new_rot),
+                        },
+                    );
+
+                    println!(
+                        "ADD MESH {} with trans {:?}",
+                        extracted_instance.mesh_name,
+                        (new_pos, new_rot)
+                    );
+                }
+            },
+            MeshInstanceType::SceneInstanced(mesh_indx) => {
+                if let Some(render_instance) = render_instances.scene_instances.get(&mesh_indx) {
+                    println!(
+                        "UPDATE SCENE MESH {} TRANSFORM {:?}",
+                        extracted_instance.mesh_name,
+                        (new_pos, new_rot)
+                    );
+        
+                    world_renderer.set_instance_transform(
+                        render_instance.instance_handle,
+                        new_pos,
+                        new_rot,
+                    );
+                } else {
+                    let mesh = world_renderer
+                        .add_baked_mesh(
+                            format!("/baked/{}.mesh", extracted_instance.mesh_name),
+                            AddMeshOptions::new(),
+                        )
+                        .expect(&format!(
+                            "Kajiya error: could not find baked mesh {}",
+                            extracted_instance.mesh_name
+                        ));
+        
+                    render_instances.scene_instances.insert(
+                        *mesh_indx,
+                        RenderInstance {
+                            instance_handle: world_renderer.add_instance(mesh, new_pos, new_rot),
+                            transform: (new_pos, new_rot),
+                        },
+                    );
+
+                    println!(
+                        "ADD SCENE MESH {} with trans {:?}",
+                        extracted_instance.mesh_name,
+                        (new_pos, new_rot)
+                    );
+                }   
+            },
+        }
+    }
+
     // Update WorldFrameDescription
     let lens = CameraLens {
         aspect_ratio: extracted_camera.camera.aspect_ratio,
@@ -165,94 +255,4 @@ pub fn update_scene_view(
     };
     frame_desc.camera_matrices = extracted_camera.transform.through(&lens);
     frame_desc.sun_direction = extracted_camera.environment.sun_theta_phi.direction();
-
-    // Update WorldRenderer Instances
-    let mut world_renderer = wr_res.world_renderer.lock().unwrap();
-    for (mut mesh_handles, mut mesh_transform, mesh_baked) in query.iter_mut() {
-        println!("FOUND MESH");
-
-        // If MeshInstance exists, handle any updates for it, otherwise, instance it
-        if let Some(instance_handle) = mesh_handles.instance_handle {
-            // MeshInstance exists, if there's a new transform, update the instance transform
-            if let Some((new_pos, new_rot)) = mesh_transform.transform.take() {
-                println!("SET MESH TRANSFORM {:?}", (new_pos, new_rot));
-
-                world_renderer.set_instance_transform(instance_handle, new_pos, new_rot);
-            }
-        } else {
-            // MeshInstance has not been instanced in the world renderer yet, instance it
-            let mesh = world_renderer
-                .add_baked_mesh(
-                    format!("/baked/{}.mesh", mesh_baked.file_name),
-                    AddMeshOptions::new(),
-                )
-                .expect(&format!(
-                    "Kajiya error: could not find baked mesh {}",
-                    mesh_baked.file_name
-                ));
-
-            let (pos, rot) = mesh_transform.transform.take().unwrap();
-            let instance_handle = world_renderer.add_instance(mesh, pos, rot);
-
-            mesh_handles.instance_handle = Some(instance_handle);
-            mesh_handles.mesh_handle = Some(mesh);
-            println!(
-                "ADD MESH {} with trans {:?}",
-                mesh_baked.file_name,
-                (pos, rot)
-            );
-        }
-    }
-}
-
-pub struct RenderInstance {
-    instance_handle: InstanceHandle,
-    transform: (Vec3, Quat),
-}
-
-pub struct RenderInstances {
-    map: HashMap<Entity, RenderInstance>,
-}
-
-
-#[derive(Component, Clone)]
-pub struct KajiyaMeshInstance {
-    mesh_name: String,
-}
-
-#[derive(Component, Clone)]
-pub struct KajiyaMeshInstanceExtracted {
-    entity: Entity,
-    mesh_name: String,
-    transform: (Vec3, Quat),
-}
-
-#[derive(Bundle, Clone)]
-pub struct KajiyaMeshInstanceExtractedBundle {
-    mesh_instance: KajiyaMeshInstanceExtracted,
-}
-
-// TODO: query for KajiyaMeshInstance(s) and internal render entity accordingly
-// NOTE: don't forget to drain entities before next cycle to avoid entity duplicates
-pub fn extract_meshes(query: Query<(Entity, &Transform, &KajiyaMeshInstance), (Changed<Transform>, With<KajiyaMeshInstance>)>, mut render_world: ResMut<RenderWorld>) {
-    // let mut render_instances_map = render_world.get_resource_mut::<RenderInstances>().unwrap();
-
-    let mut mesh_instances: Vec<KajiyaMeshInstanceExtractedBundle> = vec![];
-    for (entity, transform, mesh_instance_comp) in query.iter() {
-        let pos = transform.translation;
-        let rot = transform.rotation;
-
-        let extracted_pos = Vec3::new(pos.x, pos.y, pos.z);
-        let extracted_rot = Quat::from_xyzw(rot.x, rot.y, rot.z, rot.w);
-        mesh_instances.push(KajiyaMeshInstanceExtractedBundle {
-            mesh_instance: KajiyaMeshInstanceExtracted {
-                entity: entity,
-                mesh_name: mesh_instance_comp.mesh_name.clone(),
-                transform: (extracted_pos, extracted_rot),
-            }
-        });
-    }
-
-    render_world.spawn_batch(mesh_instances);
-    // commands.spawn_batch(mesh_instances);
 }
