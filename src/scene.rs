@@ -14,8 +14,6 @@ use crate::{
     KajiyaSceneDescriptor, plugin::RenderWorld,
 };
 
-const SCENE_VIEW_STATE_CONFIG_FILE_PATH: &str = "view_state.ron";
-
 #[derive(serde::Deserialize)]
 pub struct SceneDesc {
     pub instances: Vec<SceneInstanceDesc>,
@@ -95,14 +93,6 @@ pub fn setup_scene_view(
     scene: Res<KajiyaSceneDescriptor>,
     render_context: Res<RenderContext>,
 ) {
-    let scene_view_state: SceneViewState = ron::de::from_reader(
-        File::open(SCENE_VIEW_STATE_CONFIG_FILE_PATH).expect(&format!(
-            "Kajiya error: failed to read init scene state config {}",
-            SCENE_VIEW_STATE_CONFIG_FILE_PATH
-        )),
-    )
-    .expect("Kajiya error: failed to read init scene state config .ron");
-
     let scene_file = format!("assets/scenes/{}.ron", scene.scene_name);
     let scene_desc: SceneDesc = ron::de::from_reader(
         File::open(&scene_file).expect("Kajiya error: Could not open scene description file"),
@@ -138,11 +128,7 @@ pub fn setup_scene_view(
             aspect_ratio: render_context.aspect_ratio(),
             ..Default::default()
         },
-        transform: (
-            scene_view_state.camera_position,
-            scene_view_state.camera_rotation,
-        ),
-        environment: ExtractedEnvironment::default(),
+        ..Default::default()
     };
 
     let lens = CameraLens {
@@ -157,7 +143,6 @@ pub fn setup_scene_view(
     };
 
     commands.spawn_batch(mesh_instances);
-    commands.insert_resource(scene_view_state);
     commands.insert_resource(frame_desc);
     commands.insert_resource(extracted_camera);
 }

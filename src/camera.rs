@@ -45,6 +45,7 @@ pub struct ExtractedEnvironment {
     pub sun_theta_phi: SunState,
 }
 
+#[derive(Default)]
 pub struct ExtractedCamera {
     pub camera: KajiyaCamera,
     pub transform: (Vec3, Quat),
