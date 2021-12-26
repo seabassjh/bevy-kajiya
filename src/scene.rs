@@ -1,25 +1,20 @@
 use std::fs::File;
 
 use bevy::{
-    prelude::{
-        Bundle, Changed, Commands, Component, Entity, NonSendMut, Query, Res, ResMut, Transform,
-        With,
-    },
+    prelude::*,
     utils::HashMap,
 };
-use glam::{Quat, Vec2, Vec3};
+use glam::{Quat, Vec3};
 use kajiya::{
     camera::{CameraLens, LookThroughCamera},
     frame_desc::WorldFrameDesc,
-    world_renderer::{AddMeshOptions, InstanceHandle, MeshHandle, WorldRenderer},
+    world_renderer::AddMeshOptions,
 };
 
 use crate::{
-    camera::{ExtractedCamera, ExtractedEnvironment, KajiyaCamera},
+    camera::{ExtractedCamera, KajiyaCamera},
     mesh::{MeshInstanceExtracted, RenderInstance, RenderInstances, MeshInstanceExtractedBundle, MeshInstanceType},
-    plugin::RenderWorld,
-    renderer::{KajiyaRenderers, RenderContext},
-    KajiyaSceneDescriptor, KajiyaMesh,
+    renderer::{KajiyaRenderers, RenderContext}, KajiyaSceneDescriptor
 };
 
 #[derive(serde::Deserialize)]
@@ -70,29 +65,6 @@ pub struct SceneViewState {
     pub sun: SunState,
     pub lights: LocalLightsState,
     pub ev_shift: f32,
-}
-
-#[derive(Component)]
-pub struct MeshInstanceHandles {
-    instance_handle: Option<InstanceHandle>,
-    mesh_handle: Option<MeshHandle>,
-}
-
-#[derive(Component)]
-pub struct MeshInstanceTransform {
-    pub transform: Option<(Vec3, Quat)>,
-}
-
-#[derive(Bundle)]
-pub struct SceneMeshInstanceExtracted {
-    pub handles: MeshInstanceHandles,
-    pub transform: MeshInstanceTransform,
-    pub baked: MeshInstanceBaked,
-}
-
-#[derive(Component)]
-pub struct MeshInstanceBaked {
-    file_name: String,
 }
 
 pub fn setup_scene_view(
@@ -168,12 +140,6 @@ pub fn update_scene_view(
         match &extracted_instance.instance_type {
             MeshInstanceType::UserInstanced(entity) => {
                 if let Some(render_instance) = render_instances.user_instances.get(&entity) {
-                    println!(
-                        "UPDATE MESH {} TRANSFORM {:?}",
-                        extracted_instance.mesh_name,
-                        (new_pos, new_rot)
-                    );
-        
                     world_renderer.set_instance_transform(
                         render_instance.instance_handle,
                         new_pos,
@@ -197,22 +163,10 @@ pub fn update_scene_view(
                             transform: (new_pos, new_rot),
                         },
                     );
-
-                    println!(
-                        "ADD MESH {} with trans {:?}",
-                        extracted_instance.mesh_name,
-                        (new_pos, new_rot)
-                    );
                 }
             },
             MeshInstanceType::SceneInstanced(mesh_indx) => {
                 if let Some(render_instance) = render_instances.scene_instances.get(&mesh_indx) {
-                    println!(
-                        "UPDATE SCENE MESH {} TRANSFORM {:?}",
-                        extracted_instance.mesh_name,
-                        (new_pos, new_rot)
-                    );
-        
                     world_renderer.set_instance_transform(
                         render_instance.instance_handle,
                         new_pos,
@@ -235,12 +189,6 @@ pub fn update_scene_view(
                             instance_handle: world_renderer.add_instance(mesh, new_pos, new_rot),
                             transform: (new_pos, new_rot),
                         },
-                    );
-
-                    println!(
-                        "ADD SCENE MESH {} with trans {:?}",
-                        extracted_instance.mesh_name,
-                        (new_pos, new_rot)
                     );
                 }   
             },
