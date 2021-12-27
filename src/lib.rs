@@ -10,21 +10,12 @@ pub use mesh::{KajiyaMesh, KajiyaMeshInstance, KajiyaMeshInstanceBundle};
 pub use camera::{EnvironmentSettings, KajiyaCamera, KajiyaCameraBundle};
 pub use plugin::KajiyaRendererPlugin;
 
-pub struct KajiyaRendererDefaultPlugins;
+pub struct KajiyaRendererPlugins;
 
 const DEFAULT_SCENE_NAME: &str = "battle";
 
-impl PluginGroup for KajiyaRendererDefaultPlugins {
+impl PluginGroup for KajiyaRendererPlugins {
     fn build(&mut self, group: &mut PluginGroupBuilder) {
-        group.add(bevy::log::LogPlugin::default());
-        group.add(bevy::core::CorePlugin::default());
-        group.add(bevy::transform::TransformPlugin::default());
-        group.add(bevy::diagnostic::DiagnosticsPlugin::default());
-        group.add(bevy::input::InputPlugin::default());
-        group.add(bevy::window::WindowPlugin::default());
-        group.add(bevy::asset::AssetPlugin::default());
-        group.add(bevy::scene::ScenePlugin::default());
-        group.add(bevy::winit::WinitPlugin::default());
         group.add(KajiyaRendererPlugin::default());
     }
 }
