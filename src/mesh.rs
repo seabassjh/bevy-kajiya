@@ -14,16 +14,24 @@ pub struct RenderInstances {
     pub scene_instances: HashMap<usize, RenderInstance>,
 }
 
-#[derive(Bundle)]
+#[derive(Bundle, Default)]
 pub struct KajiyaMeshInstanceBundle {
     pub mesh_instance: KajiyaMeshInstance,
     pub transform: Transform,
+    pub global_transform: GlobalTransform,
 }
 
 #[derive(Clone)]
 pub enum KajiyaMesh {
     User(String),
     Scene(usize, String),
+    None,
+}
+
+impl Default for KajiyaMesh {
+    fn default() -> Self {
+        Self::None
+    }
 }
 
 #[derive(Clone)]
@@ -32,7 +40,7 @@ pub enum MeshInstanceType {
     SceneInstanced(usize),
 }
 
-#[derive(Component, Clone)]
+#[derive(Component, Clone, Default)]
 pub struct KajiyaMeshInstance {
     pub mesh: KajiyaMesh,
 }
@@ -53,8 +61,8 @@ pub struct MeshInstanceExtractedBundle {
 // NOTE: don't forget to drain entities before next cycle to avoid entity duplicates
 pub fn extract_meshes(
     query: Query<
-        (Entity, &Transform, &KajiyaMeshInstance),
-        (Changed<Transform>, With<KajiyaMeshInstance>),
+        (Entity, &GlobalTransform, &KajiyaMeshInstance),
+        (Changed<GlobalTransform>, With<KajiyaMeshInstance>),
     >,
     mut render_world: ResMut<RenderWorld>,
 ) {
@@ -87,6 +95,7 @@ pub fn extract_meshes(
                     },
                 });
             },
+            KajiyaMesh::None => {},
         }
     }
 

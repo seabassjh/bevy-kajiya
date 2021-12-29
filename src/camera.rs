@@ -38,6 +38,7 @@ pub struct KajiyaCameraBundle {
     pub camera: KajiyaCamera,
     pub environment_settings: EnvironmentSettings,
     pub transform: Transform,
+    pub global_transform: GlobalTransform,
 }
 
 #[derive(Default)]
