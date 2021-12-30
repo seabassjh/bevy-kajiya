@@ -1,18 +1,19 @@
 use bevy::{app::PluginGroupBuilder, prelude::*};
+
 mod camera;
 mod frame;
 mod mesh;
 mod plugin;
-mod renderer;
-mod scene;
+mod render_resources;
+mod world_renderer;
 
-pub use mesh::{KajiyaMesh, KajiyaMeshInstance, KajiyaMeshInstanceBundle};
 pub use camera::{EnvironmentSettings, KajiyaCamera, KajiyaCameraBundle};
+pub use mesh::{KajiyaMesh, KajiyaMeshInstance, KajiyaMeshInstanceBundle};
 pub use plugin::KajiyaRendererPlugin;
 
 pub struct KajiyaRendererPlugins;
 
-const DEFAULT_SCENE_NAME: &str = "battle";
+const DEFAULT_SCENE_NAME: &str = "car";
 
 impl PluginGroup for KajiyaRendererPlugins {
     fn build(&mut self, group: &mut PluginGroupBuilder) {

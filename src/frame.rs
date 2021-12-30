@@ -1,7 +1,9 @@
 use bevy::ecs::prelude::*;
 use kajiya::{frame_desc::WorldFrameDesc, rg};
 
-use crate::renderer::{KajiyaRGRenderer, KajiyaRenderBackend, KajiyaRenderers, RenderContext};
+use crate::render_resources::{
+    KajiyaRGRenderer, KajiyaRenderBackend, KajiyaRenderers, RenderContext,
+};
 
 pub fn render_frame(
     wr_res: NonSendMut<KajiyaRenderers>,

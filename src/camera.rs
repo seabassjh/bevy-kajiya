@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use glam::{Quat, Vec3};
 
-use crate::{plugin::RenderWorld, scene::SunState};
+use crate::{plugin::RenderWorld, world_renderer::SunState};
 
 #[derive(Component, Copy, Clone)]
 pub struct KajiyaCamera {

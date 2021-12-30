@@ -54,7 +54,7 @@ pub struct MeshInstanceExtracted {
 
 #[derive(Bundle, Clone)]
 pub struct MeshInstanceExtractedBundle {
-   pub mesh_instance: MeshInstanceExtracted,
+    pub mesh_instance: MeshInstanceExtracted,
 }
 
 // TODO: query for KajiyaMeshInstance(s) and internal render entity accordingly
@@ -85,7 +85,7 @@ pub fn extract_meshes(
                         transform: (pos, rot),
                     },
                 });
-            },
+            }
             KajiyaMesh::Scene(mesh_indx, mesh_name) => {
                 mesh_instances.push(MeshInstanceExtractedBundle {
                     mesh_instance: MeshInstanceExtracted {
@@ -94,8 +94,8 @@ pub fn extract_meshes(
                         transform: (pos, rot),
                     },
                 });
-            },
-            KajiyaMesh::None => {},
+            }
+            KajiyaMesh::None => {}
         }
     }
 

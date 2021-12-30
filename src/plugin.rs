@@ -16,13 +16,13 @@ use std::ops::{Deref, DerefMut};
 use std::sync::Mutex;
 use turbosloth::LazyCache;
 
-use crate::{camera::extract_camera, mesh::extract_meshes};
 use crate::frame::render_frame;
-use crate::renderer::{
+use crate::render_resources::{
     KajiyaRGRenderer, KajiyaRenderBackend, KajiyaRenderers, RenderContext, WindowConfig,
 };
-use crate::scene::{setup_scene_view, update_scene_view};
+use crate::world_renderer::{setup_world_renderer, update_world_renderer};
 use crate::KajiyaSceneDescriptor;
+use crate::{camera::extract_camera, mesh::extract_meshes};
 
 /// Contains the Bevy interface to the Kajiya renderer.
 #[derive(Default)]
@@ -144,7 +144,7 @@ impl Plugin for KajiyaRendererPlugin {
                 KajiyaRenderStage::Setup,
                 SystemStage::parallel()
                     .with_run_criteria(RunOnce::default())
-                    .with_system(setup_scene_view.exclusive_system().at_start()),
+                    .with_system(setup_world_renderer.exclusive_system().at_start()),
             )
             .add_stage(
                 KajiyaRenderStage::Extract,
@@ -154,7 +154,7 @@ impl Plugin for KajiyaRendererPlugin {
             )
             .add_stage(
                 KajiyaRenderStage::Prepare,
-                SystemStage::single(update_scene_view),
+                SystemStage::single(update_world_renderer),
             )
             .add_stage(KajiyaRenderStage::Render, SystemStage::single(render_frame))
             .add_stage(KajiyaRenderStage::Cleanup, SystemStage::parallel())
