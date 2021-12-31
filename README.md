@@ -45,6 +45,12 @@ spirv_headers = { git = "https://github.com/gfx-rs/rspirv.git", rev = "dae552c" 
     })
 ```
 
+Add these plugins:
+```
+    .add_plugins(DefaultPlugins)
+    .add_plugins(KajiyaRendererPlugins)
+```
+
 ## Scenes
 You specify the scene to be loaded on startup with the `KajiyaSceneDescriptor` resource inserted in `App::new()`.  The scene as specified by `"my-scene"` should be located in `assets/scenes/my-scene.ron`
 
