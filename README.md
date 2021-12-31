@@ -101,7 +101,7 @@ Then you can spawn the mesh with:
 
 ## Camera
 
-You must spawn exactly one camera.  Put this is your `setup` system:
+You must spawn exactly one camera.  Put this in your `setup` system:
 
 ```
     commands.spawn_bundle(KajiyaCameraBundle {
