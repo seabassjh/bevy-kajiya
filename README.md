@@ -1,7 +1,7 @@
 <div align="center">
 
 # 🕊️💡 bevy-kajiya 
-**A plugin that enables bevy to use the kajiya renderer**
+**A plugin that enables use of the kajiya renderer in bevy**
 </div>
 
 
@@ -55,7 +55,9 @@ You specify the scene to be loaded on startup with the `KajiyaSceneDescriptor` r
     })
 ```
 
-### Scene Format
+### Scene Format Example
+
+The renderer looks for all meshes in `assets/meshes/*`.  In this example, the mesh files should be located in `assets/meshes/336_lrm/` and `assets/meshes/floor/`
 
 ```
 (
@@ -77,6 +79,30 @@ You specify the scene to be loaded on startup with the `KajiyaSceneDescriptor` r
 You must run `bake.cmd` any time mesh assets have been modified (or if first time building).  Adding new meshes requires adding a line in `bake.cmd`:
 
 ```
-%BAKE% --scene "assets/meshes/my_new_mesh/scene.gltf" --scale 1.0 -o my_new_mesh
+%BAKE% --scene "assets/meshes/my_mesh/scene.gltf" --scale 1.0 -o my_mesh
 ```
 
+Then you can spawn the mesh with:
+```
+    commands.spawn_bundle(KajiyaMeshInstanceBundle {
+        mesh_instance: KajiyaMeshInstance { 
+            mesh: KajiyaMesh::User("my_mesh".to_string()),
+        },
+        transform: Transform::from_translation(Vec3::new(0.0, 0.0, 0.0)),
+        ..Default::default()
+    });
+```
+
+## Camera
+
+You must spawn exactly one camera.  Put this is your `setup` system:
+
+```
+    commands.spawn_bundle(KajiyaCameraBundle {
+        camera: KajiyaCamera {
+            aspect_ratio: window.requested_width() / window.requested_height(),
+            ..Default::default()
+        },
+        ..Default::default()
+    })
+```
