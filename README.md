@@ -14,7 +14,7 @@ Yes, you can visualize some bevy entities in ray-traced glory, but don't expect 
 
 # Example
 
-See [bevy-kajiya-playground](https://github.com/Seabass247/bevy-kajiya-playground) for basic usage of `bevy` and `bevy-kajiya` in a bevy app.  You can fly around the scene in first person and manipulate the sun.
+See [bevy-kajiya-playground](https://github.com/Seabass247/bevy-kajiya-playground) for basic usage of `bevy` and `bevy-kajiya` in a bevy app.  You can fly around a simple scene with moving meshes in first person, manipulate the sun, and view a reflection of your player model in a mirror.
 
 # Usage
 
