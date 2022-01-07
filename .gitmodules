@@ -1,3 +1,6 @@
 [submodule "kajiya"]
 	path = kajiya
 	url = https://github.com/EmbarkStudios/kajiya.git
+[submodule "egui-gizmo"]
+	path = egui-gizmo
+	url = https://github.com/Seabass247/egui-gizmo.git
