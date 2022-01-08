@@ -1,0 +1,28 @@
+[package]
+name = "bevy_kajiya_render"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+bevy = { path = "../../bevy", default-features = false, features = ["bevy_winit"] }
+kajiya = { path = "../../kajiya/crates/lib/kajiya" }
+
+anyhow = "1.0"
+imgui = "0.7"
+log = "0.4"
+ron = "0.6.2"
+serde = { version = "1.0", features = ["derive"] }
+structopt = "0.3"
+
+winit = "0.25"
+glam = { version = "0.18", features = ["serde"] }
+puffin = { version = "0.11.0" }
+turbosloth = { git = "https://github.com/h3r2tic/turbosloth.git", rev = "92030af" }
+
+# Place in top-level Cargo.toml
+#[patch.crates-io]
+## Official ray-tracing extensions
+#rspirv = { git = "https://github.com/gfx-rs/rspirv.git", rev = "dae552c" }
+#spirv_headers = { git = "https://github.com/gfx-rs/rspirv.git", rev = "dae552c" }

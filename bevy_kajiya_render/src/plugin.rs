@@ -26,7 +26,7 @@ use crate::{camera::extract_camera, mesh::extract_meshes};
 
 /// Contains the Bevy interface to the Kajiya renderer.
 #[derive(Default)]
-pub struct KajiyaRendererPlugin;
+pub struct KajiyaRenderPlugin;
 
 /// The labels of the default App rendering stages.
 #[derive(Debug, Hash, PartialEq, Eq, Clone, StageLabel)]
@@ -75,11 +75,11 @@ pub struct KajiyaRendererApp;
 #[derive(Default)]
 struct ScratchRenderWorld(World);
 
-impl Plugin for KajiyaRendererPlugin {
+impl Plugin for KajiyaRenderPlugin {
     /// Initializes the renderer, sets up the [`KajiyaRenderStage`](KajiyaRenderStage) and creates the rendering sub-app.
     fn build(&self, app: &mut App) {
         // Point `kajiya` to standard assets and shaders in the parent directory
-        set_standard_vfs_mount_points("./bevy-kajiya/kajiya");
+        set_standard_vfs_mount_points("./kajiya");
 
         // Game-specific assets in the current directory
         set_vfs_mount_point("/baked", "./baked");
@@ -265,7 +265,7 @@ impl Plugin for KajiyaRendererPlugin {
             },
         );
 
-        // app.add_plugin(WindowKajiyaRendererPlugin)
+        // app.add_plugin(WindowKajiyaRenderPlugin)
         //     .add_plugin(CameraPlugin)
         //     .add_plugin(ViewPlugin)
         //     .add_plugin(MeshPlugin)

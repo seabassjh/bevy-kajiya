@@ -48,7 +48,7 @@ spirv_headers = { git = "https://github.com/gfx-rs/rspirv.git", rev = "dae552c" 
 Add these plugins:
 ```
     .add_plugins(DefaultPlugins)
-    .add_plugins(KajiyaRendererPlugins)
+    .add_plugins(BevyKajiyaPlugins)
 ```
 
 ## Scenes

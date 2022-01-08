@@ -12,10 +12,8 @@ use kajiya_egui_backend::egui::{self, RawInput, Modifiers};
 use kajiya_egui_backend::{egui::CtxRef, EguiBackend};
 use std::sync::{Mutex, Arc};
 
-use crate::{
-    plugin::{KajiyaRenderStage, KajiyaRendererApp, RenderWorld},
-    render_resources::{KajiyaRGRenderer, KajiyaRenderers, RenderContext, WindowProperties},
-};
+use bevy_kajiya_render::{plugin::{KajiyaRenderStage, KajiyaRendererApp, RenderWorld}, render_resources::{KajiyaRGRenderer, KajiyaRenderers, RenderContext, WindowProperties}};
+
 
 pub struct EguiContext {
     pub egui: CtxRef,

@@ -5,31 +5,18 @@ edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[workspace]
+members = [
+    "bevy_kajiya_render",
+    "bevy_kajiya_core",
+    "bevy_kajiya_egui",
+]
+
 [dependencies]
-kajiya = { path = "kajiya/crates/lib/kajiya" }
-kajiya-egui-backend = { path = "kajiya/crates/lib/kajiya-egui", package = "kajiya-egui" }
-kajiya-imgui = { path = "kajiya/crates/lib/kajiya-imgui" }
-bevy = { path = "../bevy", default-features = false, features = ["bevy_winit"] }
-
-anyhow = "1.0"
-imgui = "0.7"
-log = "0.4"
-ron = "0.6.2"
-serde = { version = "1.0", features = ["derive"] }
-structopt = "0.3"
-
-winit = "0.25"
-glam = { version = "0.18", features = ["serde"] }
-puffin = { version = "0.11.0" }
-turbosloth = { git = "https://github.com/h3r2tic/turbosloth.git", rev = "92030af" }
+bevy_kajiya_core = { path = "bevy_kajiya_core" }
+bevy_kajiya_render = { path = "bevy_kajiya_render" }
+bevy_kajiya_egui = { path = "bevy_kajiya_egui" }
 
 [features]
-dlss = ["kajiya/dlss"]
-kajiya_egui = []
-
-# Place in top-level Cargo.toml
-#[patch.crates-io]
-## Official ray-tracing extensions
-#rspirv = { git = "https://github.com/gfx-rs/rspirv.git", rev = "dae552c" }
-#spirv_headers = { git = "https://github.com/gfx-rs/rspirv.git", rev = "dae552c" }
-
+kajiya_egui = ["bevy_kajiya_core/kajiya_egui"]
+default = [ "kajiya_egui" ]
