@@ -2,6 +2,7 @@ use bevy::{app::PluginGroupBuilder, prelude::*};
 
 use bevy_kajiya_render::KajiyaRenderPlugin;
 use bevy_kajiya_egui::KajiyaEguiPlugin;
+use bevy_kajiya_editor::KajiyaEditorPlugin;
 
 pub struct BevyKajiyaPlugins;
 
@@ -10,5 +11,7 @@ impl PluginGroup for BevyKajiyaPlugins {
         group.add(KajiyaRenderPlugin::default());
         #[cfg(feature = "kajiya_egui")]
         group.add(KajiyaEguiPlugin::default());
+        #[cfg(feature = "kajiya_editor")]
+        group.add(KajiyaEditorPlugin::default());
     }
 }

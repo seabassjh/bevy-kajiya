@@ -17,9 +17,15 @@ use bevy_kajiya_render::{plugin::{KajiyaRenderStage, KajiyaRendererApp, RenderWo
 
 pub struct EguiContext {
     pub egui: CtxRef,
-    raw_input: Option<RawInput>,
     pub window_properties: WindowProperties,
     pub mouse_position: Option<(f32, f32)>,
+    raw_input: Option<RawInput>,
+}
+
+impl EguiContext {
+    pub fn ctx(&self) -> &egui::CtxRef {
+        &self.egui
+    }
 }
 
 pub struct EguiRenderContext {

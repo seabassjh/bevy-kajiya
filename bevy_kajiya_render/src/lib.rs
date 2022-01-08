@@ -1,6 +1,6 @@
 use bevy::{app::PluginGroupBuilder, prelude::*};
 
-mod camera;
+pub mod camera;
 mod frame;
 mod mesh;
 pub mod plugin;

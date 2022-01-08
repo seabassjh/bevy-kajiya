@@ -10,6 +10,7 @@ members = [
     "bevy_kajiya_render",
     "bevy_kajiya_core",
     "bevy_kajiya_egui",
+    "bevy_kajiya_editor",
 ]
 
 [dependencies]
@@ -19,4 +20,5 @@ bevy_kajiya_egui = { path = "bevy_kajiya_egui" }
 
 [features]
 kajiya_egui = ["bevy_kajiya_core/kajiya_egui"]
-default = [ "kajiya_egui" ]
+kajiya_editor = ["bevy_kajiya_core/kajiya_editor"]
+default = [ "kajiya_egui", "kajiya_editor" ]
