@@ -8,6 +8,9 @@ pub mod plugin;
 
 pub use plugin::*;
 
+#[derive(Component, Copy, Clone)]
+pub struct TargetTag;
+
 pub struct TransformGizmo {
     view_matrix: [[f32; 4]; 4],
     projection_matrix: [[f32; 4]; 4],
@@ -16,6 +19,7 @@ pub struct TransformGizmo {
     visuals: GizmoVisuals,
     orientation: GizmoOrientation,
     last_response: Option<GizmoResult>,
+    last_value: [f32; 3],
 }
 
 impl Default for TransformGizmo {
@@ -45,6 +49,7 @@ impl Default for TransformGizmo {
             visuals,
             orientation,
             last_response: None,
+            last_value: [0.0; 3],
         }
     }
 }
@@ -59,6 +64,7 @@ impl TransformGizmo {
             visuals,
             orientation,
             last_response,
+            last_value,
         } = *self;
 
         Gizmo::new("My gizmo")
@@ -72,6 +78,13 @@ impl TransformGizmo {
 }
 
 #[derive(Default)]
+pub struct Target {
+    pub entity: Option<Entity>,
+    target_origin: Vec3,
+}
+
+#[derive(Default)]
 pub struct EditorState {
-    pub transform_gizmo: TransformGizmo,
+    pub target: Target,
+    transform_gizmo: TransformGizmo,
 }
