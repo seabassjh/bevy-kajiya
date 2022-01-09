@@ -8,7 +8,7 @@ use kajiya::{
         Device, 
     },
 };
-use kajiya_egui_backend::egui::{self, RawInput, Modifiers};
+use kajiya_egui_backend::egui::{self, RawInput, Modifiers, Stroke, Color32};
 use kajiya_egui_backend::{egui::CtxRef, EguiBackend};
 use std::sync::{Mutex, Arc};
 
@@ -49,7 +49,12 @@ impl Plugin for KajiyaEguiPlugin {
         let mut egui = CtxRef::default();
         egui.set_fonts(egui::FontDefinitions::default());
         egui.set_style(egui::Style::default());
-        egui.set_visuals(egui::style::Visuals::dark());
+        let mut visuals = egui::style::Visuals::dark();
+        visuals.widgets.noninteractive.fg_stroke = Stroke::new(1.0, Color32::from_gray(140));
+        visuals.widgets.inactive.fg_stroke = Stroke::new(2.0, Color32::from_gray(140));
+        visuals.widgets.hovered.fg_stroke = Stroke::new(3.0, Color32::WHITE);
+
+        egui.set_visuals(visuals);
 
         let mut egui_backend = kajiya_egui_backend::EguiBackend::new(
             rg_renderer.rg_renderer.device().clone(),
