@@ -1,3 +1,4 @@
+use crate::raycast::get_intersections;
 use crate::{EditorState, TargetTag};
 use bevy::prelude::*;
 use bevy_kajiya_egui::egui::{LayerId, ScrollArea, Slider};
@@ -9,8 +10,7 @@ use bevy_kajiya_render::{
     plugin::{KajiyaRenderStage, KajiyaRendererApp},
 };
 use egui_gizmo::GizmoMode;
-use kajiya::camera::{CameraBodyMatrices, CameraLens, CameraLensMatrices, IntoCameraBodyMatrices};
-use kajiya::math;
+use kajiya::camera::{CameraBodyMatrices, IntoCameraBodyMatrices};
 
 #[derive(Default)]
 pub struct KajiyaEditorPlugin;
@@ -21,6 +21,7 @@ impl Plugin for KajiyaEditorPlugin {
         app.insert_resource(editor_state);
         app.add_system(update_target_transform);
         app.add_system(process_input);
+        app.add_system(get_intersections);
         app.sub_app(KajiyaRendererApp)
             .add_system_to_stage(KajiyaRenderStage::Extract, update_transform_gizmo)
             .add_system_to_stage(
@@ -143,14 +144,8 @@ pub fn update_transform_gizmo(
         world_to_view,
         view_to_world: _,
     } = extracted_camera.transform.into_camera_body_matrices();
-    let CameraLensMatrices {
-        view_to_clip,
-        clip_to_view: _,
-    } = calc_matrices(CameraLens {
-        aspect_ratio: extracted_camera.camera.aspect_ratio,
-        vertical_fov: extracted_camera.camera.vertical_fov,
-        near_plane_distance: extracted_camera.camera.near_plane_distance,
-    });
+
+    let view_to_clip = extracted_camera.camera.projection_matrix();
 
     if let Some(gizmo_response) = editor.transform_gizmo.last_response {
         editor.transform_gizmo.model_matrix = gizmo_response.transform;
@@ -235,29 +230,4 @@ pub fn update_target_transform(
     }
 }
 
-fn calc_matrices(cam_lens: CameraLens) -> CameraLensMatrices {
-    let fov = cam_lens.vertical_fov.to_radians();
-    let znear = cam_lens.near_plane_distance;
 
-    let h = (0.5 * fov).cos() / (0.5 * fov).sin();
-    let w = h / cam_lens.aspect_ratio;
-
-    let view_to_clip = math::Mat4::from_cols(
-        math::Vec4::new(w, 0.0, 0.0, 0.0),
-        math::Vec4::new(0.0, h, 0.0, 0.0),
-        math::Vec4::new(0.0, 0.0, 0.0, -1.0),
-        math::Vec4::new(0.0, 0.0, znear, 0.0),
-    );
-
-    let clip_to_view = math::Mat4::from_cols(
-        math::Vec4::new(1.0 / w, 0.0, 0.0, 0.0),
-        math::Vec4::new(0.0, 1.0 / h, 0.0, 0.0),
-        math::Vec4::new(0.0, 0.0, 0.0, 1.0 / znear),
-        math::Vec4::new(0.0, 0.0, -1.0, 0.0),
-    );
-
-    CameraLensMatrices {
-        view_to_clip,
-        clip_to_view,
-    }
-}

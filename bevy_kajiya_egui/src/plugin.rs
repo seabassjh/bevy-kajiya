@@ -135,7 +135,6 @@ pub fn extract_mouse_input(
         let window_height = egui_ctx.window_properties.1 as f32;
         let scale_factor = egui_ctx.window_properties.2 as f32;
         let mut mouse_position: (f32, f32) = (cursor_moved.position).into();
-
         mouse_position.1 = window_height / scale_factor - mouse_position.1;
 
         egui_ctx.mouse_position = Some(mouse_position);

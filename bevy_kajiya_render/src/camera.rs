@@ -1,5 +1,7 @@
 use bevy::prelude::*;
 use glam::{Quat, Vec3};
+use kajiya::camera::{CameraLensMatrices, CameraLens};
+use kajiya::math;
 
 use crate::{plugin::RenderWorld, world_renderer::SunState};
 
@@ -17,6 +19,49 @@ impl Default for KajiyaCamera {
             aspect_ratio: 1.0,
             vertical_fov: 52.0,
         }
+    }
+}
+
+impl KajiyaCamera {
+    fn calc_matrices(self) -> CameraLensMatrices {
+        let cam_lens = CameraLens {
+            aspect_ratio: self.aspect_ratio,
+            vertical_fov: self.vertical_fov,
+            near_plane_distance: self.near_plane_distance,
+        };
+        let fov = cam_lens.vertical_fov.to_radians();
+        let znear = cam_lens.near_plane_distance;
+    
+        let h = (0.5 * fov).cos() / (0.5 * fov).sin();
+        let w = h / cam_lens.aspect_ratio;
+    
+        let view_to_clip = math::Mat4::from_cols(
+            math::Vec4::new(w, 0.0, 0.0, 0.0),
+            math::Vec4::new(0.0, h, 0.0, 0.0),
+            math::Vec4::new(0.0, 0.0, 0.0, -1.0),
+            math::Vec4::new(0.0, 0.0, znear, 0.0),
+        );
+    
+        let clip_to_view = math::Mat4::from_cols(
+            math::Vec4::new(1.0 / w, 0.0, 0.0, 0.0),
+            math::Vec4::new(0.0, 1.0 / h, 0.0, 0.0),
+            math::Vec4::new(0.0, 0.0, 0.0, 1.0 / znear),
+            math::Vec4::new(0.0, 0.0, -1.0, 0.0),
+        );
+    
+        CameraLensMatrices {
+            view_to_clip,
+            clip_to_view,
+        }
+    }
+
+    pub fn projection_matrix(&self) -> math::Mat4 {
+        let CameraLensMatrices {
+            view_to_clip,
+            clip_to_view: _,
+        } = self.calc_matrices();
+
+        view_to_clip
     }
 }
 

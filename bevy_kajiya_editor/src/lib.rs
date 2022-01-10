@@ -2,12 +2,17 @@ use bevy::prelude::*;
 use bevy_kajiya_egui::egui::Color32;
 use egui_gizmo::{Gizmo, GizmoMode, GizmoOrientation, GizmoResult, GizmoVisuals};
 
+mod raycast;
+
 pub mod plugin;
 
 pub use plugin::*;
 
 #[derive(Component, Copy, Clone)]
 pub struct TargetTag;
+
+#[derive(Component, Copy, Clone)]
+pub struct SelectableTag;
 
 /// The default snapping distance for rotation in radians
 pub const DEFAULT_SNAP_ANGLE: f32 = 15.0;

@@ -1,6 +1,6 @@
 pub mod camera;
 mod frame;
-mod mesh;
+pub mod mesh;
 pub mod plugin;
 pub mod render_resources;
 mod world_renderer;
