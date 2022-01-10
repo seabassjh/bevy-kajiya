@@ -340,6 +340,7 @@ name = "bevy-kajiya"
 version = "0.1.0"
 dependencies = [
  "bevy_kajiya_core",
+ "bevy_kajiya_editor",
  "bevy_kajiya_egui",
  "bevy_kajiya_render",
 ]
@@ -491,6 +492,7 @@ version = "0.1.0"
 dependencies = [
  "bevy",
  "bevy_kajiya_egui",
+ "bevy_kajiya_logger",
  "bevy_kajiya_render",
  "egui-gizmo",
  "kajiya",
@@ -501,9 +503,17 @@ name = "bevy_kajiya_egui"
 version = "0.1.0"
 dependencies = [
  "bevy",
+ "bevy_kajiya_logger",
  "bevy_kajiya_render",
  "kajiya",
  "kajiya-egui",
+]
+
+[[package]]
+name = "bevy_kajiya_logger"
+version = "0.1.0"
+dependencies = [
+ "lazy_static",
 ]
 
 [[package]]
@@ -1218,6 +1228,8 @@ checksum = "6907e25393cdcc1f4f3f513d9aac1e840eb1cc341a0fccb01171f7d14d10b946"
 [[package]]
 name = "egui"
 version = "0.16.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7c733356eb5f1139fdeedc370c00e9ea689c5d9120502c43925285bc7249a333"
 dependencies = [
  "ahash",
  "epaint",
@@ -1235,6 +1247,8 @@ dependencies = [
 [[package]]
 name = "emath"
 version = "0.16.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "55673de2eb96660dde25ba7b2d36a7054beead1a2bec74dcfd5eb05a1e1ba76d"
 
 [[package]]
 name = "env_logger"
@@ -1249,6 +1263,8 @@ dependencies = [
 [[package]]
 name = "epaint"
 version = "0.16.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "adfd9296f7f92902e41c0e8e5deca6d2fb29f289c86d03a01ea01bd7498316c2"
 dependencies = [
  "ab_glyph",
  "ahash",

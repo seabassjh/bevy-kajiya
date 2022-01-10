@@ -1,7 +1,8 @@
 use crate::{EditorState, TargetTag};
 use bevy::prelude::*;
-use bevy_kajiya_egui::egui::{LayerId, Slider, Separator};
+use bevy_kajiya_egui::egui::{LayerId, Slider, Separator, ScrollArea, Order, Id};
 use bevy_kajiya_egui::{egui, EguiContext};
+use bevy_kajiya_logger::{console_info, get_console_logs};
 use bevy_kajiya_render::camera::ExtractedCamera;
 use bevy_kajiya_render::KajiyaMeshInstance;
 use bevy_kajiya_render::{
@@ -15,21 +16,24 @@ use kajiya::math;
 #[derive(Default)]
 pub struct KajiyaEditorPlugin;
 
-
 impl Plugin for KajiyaEditorPlugin {
     fn build(&self, app: &mut App) {
         let editor_state = EditorState::default();
-        app.add_system(process_gui).insert_resource(editor_state);
+        app.insert_resource(editor_state);
         app.add_system(update_target_transform);
         app.add_system(process_input);
         app.sub_app(KajiyaRendererApp)
-            .add_system_to_stage(KajiyaRenderStage::Extract, update_transform_gizmo);
+            .add_system_to_stage(KajiyaRenderStage::Extract, update_transform_gizmo)
+            .add_system_to_stage(KajiyaRenderStage::Extract, process_gui.exclusive_system().at_end());
+        
+        console_info!("Editor Plugin Initialized");
     }
 }
    
 pub fn process_input(mut editor: ResMut<EditorState>, keys: Res<Input<KeyCode>>,) {
     if keys.pressed(KeyCode::LControl) {
         editor.transform_gizmo.snapping = true;
+
     } else {
         editor.transform_gizmo.snapping = false;
     }
@@ -51,14 +55,16 @@ pub fn process_gui(egui: Res<EguiContext>, mut editor: ResMut<EditorState>) {
     if editor.hide_gui {
         return;
     }
-    egui::SidePanel::left("backend_panel").show(&egui.egui, |ui| {
+    let egui = &egui.egui;
+    egui::SidePanel::left("backend_panel").resizable(false).show(egui, |ui| {
         ui.vertical_centered(|ui| {
             ui.heading("Editor");
         });
 
         ui.separator();
 
-        egui::ComboBox::from_label("Transform Tool")
+        ui.label("Transform Tool");
+        egui::ComboBox::from_id_source("transform_mode_combo_box")
             .selected_text(format!("{:?}", editor.transform_gizmo.mode))
             .show_ui(ui, |ui| {
                 ui.selectable_value(&mut editor.transform_gizmo.mode, GizmoMode::Rotate, "Rotate Mode");
@@ -68,24 +74,48 @@ pub fn process_gui(egui: Res<EguiContext>, mut editor: ResMut<EditorState>) {
 
         ui.separator();
 
-        ui.label("Tool Snapping");
+        ui.label("Translation Snapping");
         ui.add(
             Slider::new(&mut editor.transform_gizmo.snap_distance, (0.0)..=(1.0))
                 .clamp_to_range(true)
                 .smart_aim(true)
-                .text("Translation (units)"),
+                .text("units"),
         );
+        ui.label("Rotation Snapping");
         ui.add(
             Slider::new(&mut editor.transform_gizmo.snap_angle, (0.0)..=(90.0))
                 .clamp_to_range(true)
                 .smart_aim(true)
-                .text("Rotation (degrees)"),
+                .text("deg"),
         );
+    });
+
+    egui::TopBottomPanel::bottom("bottom_panel")
+        .min_height(100.0)
+        .max_height(400.0)
+        .resizable(true)
+        .show(egui, |ui| {
+            ui.vertical_centered(|ui| {
+            ui.heading("Console");
+
+            ScrollArea::vertical()
+                .enable_scrolling(true)
+                .stick_to_bottom()
+                .auto_shrink([false, false])
+                .show(ui, |ui| {
+                    ui.vertical(|ui| {
+                        for log_message in get_console_logs() {
+                            ui.label(log_message);
+                        }
+                    });
+            });
+        
+        });
     });
 
     egui::Area::new("viewport")
         .fixed_pos((0.0, 0.0))
-        .show(&egui.egui, |ui| {
+        .show(egui, |ui| {
             ui.with_layer_id(LayerId::background(), |ui| {
                 let last_response = editor.transform_gizmo.gizmo().interact(ui);
                 editor.transform_gizmo.last_response = last_response;
@@ -147,10 +177,9 @@ pub fn update_target_transform(
                         editor.target.target_origin = transform.translation;
                     }
                     transform.translation = editor.target.target_origin + delta;
+                    console_info!("Rotation {:?}", transform.translation);
                 }
                 egui_gizmo::GizmoMode::Rotate => {
-                    println!("gizmo_response.value {:?}", gizmo_response.value);
-                    println!("target_orientation {:?}", editor.target.target_orientation);
                     let delta: Vec3 = gizmo_response.value.into();
                     let delta = delta * -1.0;
 
@@ -158,6 +187,8 @@ pub fn update_target_transform(
                     rotation *= Quat::from_rotation_y(delta.y);
                     rotation *= Quat::from_rotation_z(delta.z);
                     transform.rotation = rotation * editor.target.target_orientation;
+                    console_info!("Rotation {:?}", transform.rotation);
+
                 },
                 egui_gizmo::GizmoMode::Scale => {},
             }

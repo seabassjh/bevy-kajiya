@@ -1,4 +1,4 @@
-use std::{sync::{Arc, Mutex}, f32::consts::PI};
+use std::{sync::{Arc, Mutex, RwLock}, f32::consts::PI};
 
 use bevy::prelude::*;
 use bevy_kajiya_egui::egui::{Color32, LayerId};
@@ -42,8 +42,8 @@ impl Default for TransformGizmo {
             z_color: Color32::from_rgb(0, 128, 255),
             inactive_alpha: 0.6,
             s_color: Color32::TRANSPARENT,
-            stroke_width: 8.0,
-            gizmo_size: 125.0,
+            stroke_width: 6.0,
+            gizmo_size: 100.0,
             ..Default::default()
         };
         let orientation = GizmoOrientation::Global;

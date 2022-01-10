@@ -1,7 +1,7 @@
 use bevy::{
     app::{App, AppLabel, Plugin},
     ecs::schedule::RunOnce,
-    prelude::*,
+    prelude::*, input::mouse::{MouseScrollUnit, MouseWheel},
 };
 use kajiya::{
     backend::{
@@ -124,10 +124,22 @@ pub fn extract_context(
 
 pub fn extract_mouse_input(
     mut egui_ctx: ResMut<EguiContext>,
+    mut mouse_wheel_events: EventReader<MouseWheel>,
     mut ev_cursor: EventReader<CursorMoved>, 
     buttons: Res<Input<MouseButton>>,
 ) {
     let mut raw_input = egui_ctx.raw_input.take().unwrap();
+
+    for event in mouse_wheel_events.iter() {
+        let mut delta = egui::vec2(event.x, event.y);
+        if let MouseScrollUnit::Line = event.unit {
+            delta *= 24.0;
+        }
+
+        raw_input
+            .events
+            .push(egui::Event::Scroll(delta));
+    }
 
     if let Some(cursor_moved) = ev_cursor.iter().next_back() {
         let window_height = egui_ctx.window_properties.1 as f32;
@@ -135,8 +147,6 @@ pub fn extract_mouse_input(
         let mut mouse_position: (f32, f32) = (cursor_moved.position).into();
         
         mouse_position.1 = window_height / scale_factor - mouse_position.1;
-
-        println!("pos={:?}", mouse_position);
 
         egui_ctx.mouse_position = Some(mouse_position);
 
