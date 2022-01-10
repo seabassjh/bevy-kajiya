@@ -16,7 +16,7 @@ use std::ops::{Deref, DerefMut};
 use std::sync::Mutex;
 use turbosloth::LazyCache;
 
-use crate::{frame::render_frame};
+use crate::frame::render_frame;
 use crate::render_resources::{
     KajiyaRGRenderer, KajiyaRenderBackend, KajiyaRenderers, RenderContext, WindowConfig,
 };
@@ -121,25 +121,24 @@ impl Plugin for KajiyaRenderPlugin {
         let ui_renderer = UiRenderer::default();
 
         let rg_renderer = kajiya::rg::renderer::Renderer::new(&render_backend).unwrap();
-        
+
         let kajiya_renderers = KajiyaRenderers {
             world_renderer: Mutex::new(world_renderer),
             ui_renderer: Mutex::new(ui_renderer),
         };
-        
+
         let render_backend = KajiyaRenderBackend { render_backend };
         let rg_renderer = KajiyaRGRenderer { rg_renderer };
-        
+
         let mut render_app = App::empty();
-        
+
         let scene_descriptor = app
-        .world
-        .get_resource::<KajiyaSceneDescriptor>()
-        .map(|descriptor| (*descriptor).clone())
-        .unwrap_or_default();
-        
-        app
-            .init_resource::<ScratchRenderWorld>();
+            .world
+            .get_resource::<KajiyaSceneDescriptor>()
+            .map(|descriptor| (*descriptor).clone())
+            .unwrap_or_default();
+
+        app.init_resource::<ScratchRenderWorld>();
 
         render_app
             .add_stage(

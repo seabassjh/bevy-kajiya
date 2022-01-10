@@ -1,7 +1,5 @@
-use std::{sync::{Arc, Mutex, RwLock}, f32::consts::PI};
-
 use bevy::prelude::*;
-use bevy_kajiya_egui::egui::{Color32, LayerId};
+use bevy_kajiya_egui::egui::Color32;
 use egui_gizmo::{Gizmo, GizmoMode, GizmoOrientation, GizmoResult, GizmoVisuals};
 
 pub mod plugin;
@@ -24,7 +22,7 @@ pub struct TransformGizmo {
     visuals: GizmoVisuals,
     orientation: GizmoOrientation,
     last_response: Option<GizmoResult>,
-    last_value: [f32; 3],
+    last_transformation: Option<(GizmoMode, [f32; 3])>,
     snapping: bool,
     snap_angle: f32,
     snap_distance: f32,
@@ -56,9 +54,9 @@ impl Default for TransformGizmo {
             visuals,
             orientation,
             last_response: None,
-            last_value: [0.0; 3],
+            last_transformation: None,
             snapping: false,
-            snap_angle:  DEFAULT_SNAP_ANGLE,
+            snap_angle: DEFAULT_SNAP_ANGLE,
             snap_distance: DEFAULT_SNAP_DISTANCE,
         }
     }
@@ -66,7 +64,6 @@ impl Default for TransformGizmo {
 
 impl TransformGizmo {
     pub fn gizmo(&self) -> Gizmo {
-        
         let Self {
             view_matrix,
             projection_matrix,
@@ -74,8 +71,8 @@ impl TransformGizmo {
             mode,
             visuals,
             orientation,
-            last_response,
-            last_value,
+            last_response: _,
+            last_transformation: _,
             snapping,
             snap_angle,
             snap_distance,

@@ -1,5 +1,3 @@
-use bevy::{app::PluginGroupBuilder, prelude::*};
-
 pub mod camera;
 mod frame;
 mod mesh;

@@ -1,4 +1,8 @@
-use bevy::{prelude::App, window::{HasRawWindowHandleWrapper, Window}};
+use bevy::{
+    prelude::App,
+    window::HasRawWindowHandleWrapper,
+};
+use bevy_kajiya_logger::console_info;
 use kajiya::{
     backend::RenderBackend, rg::renderer::Renderer, ui_renderer::UiRenderer,
     world_renderer::WorldRenderer,
@@ -74,13 +78,33 @@ impl WindowConfig {
         ];
         let swapchain_extent = [window.physical_width(), window.physical_height()];
 
+        console_info!(
+            "Render Plugin: render_extent = {}x{}",
+            render_extent[0],
+            render_extent[1]
+        );
+        console_info!(
+            "Render Plugin: temporal_upscale_extent = {}x{}",
+            temporal_upscale_extent[0],
+            temporal_upscale_extent[1]
+        );
+        console_info!(
+            "Render Plugin: swapchain_extent = {}x{}",
+            swapchain_extent[0],
+            swapchain_extent[1]
+        );
+
         WindowConfig {
             raw_window_handle,
             swapchain_extent,
             render_extent,
             temporal_upscale_extent,
             vsync: window.vsync(),
-            window_properties: WindowProperties(window.physical_width(), window.physical_height(), window.scale_factor()),
+            window_properties: WindowProperties(
+                window.physical_width(),
+                window.physical_height(),
+                window.scale_factor(),
+            ),
         }
     }
 }
