@@ -1,4 +1,4 @@
-use bevy::{prelude::*, utils::HashMap, math};
+use bevy::{math, prelude::*, utils::HashMap};
 use glam::{Quat, Vec3, Vec3A};
 use kajiya::world_renderer::InstanceHandle;
 
@@ -13,7 +13,10 @@ pub struct Aabb {
 
 impl Aabb {
     pub fn from_center_padding(center: math::Vec3, padding: f32) -> Self {
-        Self { center, half_extents: math::Vec3::splat(padding) }
+        Self {
+            center,
+            half_extents: math::Vec3::splat(padding),
+        }
     }
 
     pub fn from_min_max(minimum: math::Vec3, maximum: math::Vec3) -> Self {

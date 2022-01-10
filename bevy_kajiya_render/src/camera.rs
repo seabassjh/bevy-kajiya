@@ -1,6 +1,7 @@
 use bevy::prelude::*;
 use glam::{Quat, Vec3};
-use kajiya::camera::{CameraLensMatrices, CameraLens};
+use kajiya::camera::{CameraLens, CameraBodyMatrices, IntoCameraBodyMatrices, CameraLensMatrices};
+
 use kajiya::math;
 
 use crate::{plugin::RenderWorld, world_renderer::SunState};
@@ -31,24 +32,24 @@ impl KajiyaCamera {
         };
         let fov = cam_lens.vertical_fov.to_radians();
         let znear = cam_lens.near_plane_distance;
-    
+
         let h = (0.5 * fov).cos() / (0.5 * fov).sin();
         let w = h / cam_lens.aspect_ratio;
-    
+
         let view_to_clip = math::Mat4::from_cols(
             math::Vec4::new(w, 0.0, 0.0, 0.0),
             math::Vec4::new(0.0, h, 0.0, 0.0),
             math::Vec4::new(0.0, 0.0, 0.0, -1.0),
             math::Vec4::new(0.0, 0.0, znear, 0.0),
         );
-    
+
         let clip_to_view = math::Mat4::from_cols(
             math::Vec4::new(1.0 / w, 0.0, 0.0, 0.0),
             math::Vec4::new(0.0, 1.0 / h, 0.0, 0.0),
             math::Vec4::new(0.0, 0.0, 0.0, 1.0 / znear),
             math::Vec4::new(0.0, 0.0, -1.0, 0.0),
         );
-    
+
         CameraLensMatrices {
             view_to_clip,
             clip_to_view,
@@ -62,6 +63,26 @@ impl KajiyaCamera {
         } = self.calc_matrices();
 
         view_to_clip
+    }
+
+    pub fn view_matrix_from_transform(transform: &GlobalTransform) -> math::Mat4 {
+        let pos = transform.translation;
+        let rot = transform.rotation;
+
+        let pos = Vec3::new(pos.x, pos.y, pos.z);
+        let rot = Quat::from_xyzw(rot.x, rot.y, rot.z, rot.w);
+        let transform = (pos, rot);
+    
+        Self::view_matrix_from_pos_rot(transform)
+    }
+
+    pub fn view_matrix_from_pos_rot(transform: (Vec3, Quat)) -> math::Mat4 {
+        let CameraBodyMatrices {
+            world_to_view,
+            view_to_world: _,
+        } = transform.into_camera_body_matrices();
+
+        world_to_view
     }
 }
 

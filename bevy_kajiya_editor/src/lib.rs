@@ -1,23 +1,22 @@
 use bevy::prelude::*;
 use bevy_kajiya_egui::egui::Color32;
 use egui_gizmo::{Gizmo, GizmoMode, GizmoOrientation, GizmoResult, GizmoVisuals};
+use raycast::RayCast;
 
+mod target;
 mod raycast;
+
+use crate::target::Target;
 
 pub mod plugin;
 
 pub use plugin::*;
-
-#[derive(Component, Copy, Clone)]
-pub struct TargetTag;
-
-#[derive(Component, Copy, Clone)]
-pub struct SelectableTag;
+pub use raycast::SelectableTag;
 
 /// The default snapping distance for rotation in radians
 pub const DEFAULT_SNAP_ANGLE: f32 = 15.0;
 /// The default snapping distance for translation
-pub const DEFAULT_SNAP_DISTANCE: f32 = 0.1;
+pub const DEFAULT_SNAP_DISTANCE: f32 = 1.0;
 
 pub struct TransformGizmo {
     view_matrix: [[f32; 4]; 4],
@@ -28,7 +27,7 @@ pub struct TransformGizmo {
     orientation: GizmoOrientation,
     last_response: Option<GizmoResult>,
     last_transformation: Option<(GizmoMode, [f32; 3])>,
-    snapping: bool,
+    snapping_off: bool,
     snap_angle: f32,
     snap_distance: f32,
 }
@@ -60,7 +59,7 @@ impl Default for TransformGizmo {
             orientation,
             last_response: None,
             last_transformation: None,
-            snapping: false,
+            snapping_off: false,
             snap_angle: DEFAULT_SNAP_ANGLE,
             snap_distance: DEFAULT_SNAP_DISTANCE,
         }
@@ -78,7 +77,7 @@ impl TransformGizmo {
             orientation,
             last_response: _,
             last_transformation: _,
-            snapping,
+            snapping_off,
             snap_angle,
             snap_distance,
         } = *self;
@@ -89,7 +88,7 @@ impl TransformGizmo {
             .model_matrix(model_matrix)
             .mode(mode)
             .orientation(orientation)
-            .snapping(snapping)
+            .snapping(!snapping_off)
             .snap_angle(snap_angle.to_radians())
             .snap_distance(snap_distance)
             .visuals(visuals)
@@ -97,15 +96,10 @@ impl TransformGizmo {
 }
 
 #[derive(Default)]
-pub struct Target {
-    pub entity: Option<Entity>,
-    target_origin: Vec3,
-    target_orientation: Quat,
-}
-
-#[derive(Default)]
 pub struct EditorState {
-    pub target: Target,
+    pub selected_target: Option<Target>,
     transform_gizmo: TransformGizmo,
     hide_gui: bool,
+    last_ray_cast: RayCast,
+    ray_count: u32,
 }

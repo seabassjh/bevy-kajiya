@@ -1,16 +1,15 @@
-use crate::raycast::get_intersections;
-use crate::{EditorState, TargetTag};
+use crate::raycast::{RayCast, pick_meshes};
+use crate::{EditorState};
 use bevy::prelude::*;
 use bevy_kajiya_egui::egui::{LayerId, ScrollArea, Slider};
 use bevy_kajiya_egui::{egui, EguiContext};
 use bevy_kajiya_logger::{console_info, get_console_logs};
 use bevy_kajiya_render::camera::ExtractedCamera;
-use bevy_kajiya_render::KajiyaMeshInstance;
-use bevy_kajiya_render::{
-    plugin::{KajiyaRenderStage, KajiyaRendererApp},
-};
-use egui_gizmo::GizmoMode;
+use bevy_kajiya_render::plugin::{KajiyaRenderStage, KajiyaRendererApp};
+use bevy_kajiya_render::{KajiyaMeshInstance, KajiyaCamera};
+use egui_gizmo::{GizmoMode, Ray};
 use kajiya::camera::{CameraBodyMatrices, IntoCameraBodyMatrices};
+use crate::target::{Target, update_target_transform, TargetTag};
 
 #[derive(Default)]
 pub struct KajiyaEditorPlugin;
@@ -21,7 +20,7 @@ impl Plugin for KajiyaEditorPlugin {
         app.insert_resource(editor_state);
         app.add_system(update_target_transform);
         app.add_system(process_input);
-        app.add_system(get_intersections);
+        app.add_system(pick_meshes);
         app.sub_app(KajiyaRendererApp)
             .add_system_to_stage(KajiyaRenderStage::Extract, update_transform_gizmo)
             .add_system_to_stage(
@@ -35,9 +34,9 @@ impl Plugin for KajiyaEditorPlugin {
 
 pub fn process_input(mut editor: ResMut<EditorState>, keys: Res<Input<KeyCode>>) {
     if keys.pressed(KeyCode::LControl) {
-        editor.transform_gizmo.snapping = true;
+        editor.transform_gizmo.snapping_off = true;
     } else {
-        editor.transform_gizmo.snapping = false;
+        editor.transform_gizmo.snapping_off = false;
     }
 
     if keys.just_pressed(KeyCode::Tab) {
@@ -57,10 +56,9 @@ pub fn process_gui(egui: Res<EguiContext>, mut editor: ResMut<EditorState>) {
     if editor.hide_gui {
         return;
     }
-    let egui = &egui.egui;
     egui::SidePanel::left("backend_panel")
         .resizable(false)
-        .show(egui, |ui| {
+        .show(&egui.egui, |ui| {
             ui.vertical_centered(|ui| {
                 ui.heading("Editor");
             });
@@ -100,13 +98,26 @@ pub fn process_gui(egui: Res<EguiContext>, mut editor: ResMut<EditorState>) {
                     .smart_aim(true)
                     .text("deg"),
             );
+
+            ui.separator();
+
+            ui.label("Selected Transform");
+            let mut translation_str = "".to_string();
+            let mut rotation_str = "".to_string();
+            if let Some(target) = editor.selected_target {
+                translation_str = format!("{:?}", target.origin);
+                rotation_str = format!("{:?}", target.orientation);
+            }
+            ui.add(egui::TextEdit::singleline(&mut translation_str).interactive(false));
+            ui.add(egui::TextEdit::singleline(&mut rotation_str).interactive(false));
+    
         });
 
     egui::TopBottomPanel::bottom("bottom_panel")
         .min_height(100.0)
         .max_height(400.0)
         .resizable(true)
-        .show(egui, |ui| {
+        .show(&egui.egui, |ui| {
             ui.vertical_centered(|ui| {
                 ui.heading("Console");
 
@@ -124,110 +135,46 @@ pub fn process_gui(egui: Res<EguiContext>, mut editor: ResMut<EditorState>) {
             });
         });
 
-    egui::Area::new("viewport")
+    if editor.selected_target.is_some() {
+        egui::Area::new("viewport")
         .fixed_pos((0.0, 0.0))
-        .show(egui, |ui| {
+        .show(&egui.egui, |ui| {
             ui.with_layer_id(LayerId::background(), |ui| {
-                let last_response = editor.transform_gizmo.gizmo().interact(ui);
+                let (last_response, ray) = editor.transform_gizmo.gizmo().interact(ui);
+                if let Some(ray) = ray {
+                    editor.last_ray_cast = RayCast::from_ray(ray);
+                }
+
                 editor.transform_gizmo.last_response = last_response;
             });
-        });
+        });        
+    } else {
+        editor.transform_gizmo.last_response = None;
+    }
 }
 
 pub fn update_transform_gizmo(
     mut editor: ResMut<EditorState>,
     render_world: Res<bevy_kajiya_render::plugin::RenderWorld>,
+    query: Query<&GlobalTransform, With<TargetTag>>,
 ) {
     let extracted_camera = render_world.get_resource::<ExtractedCamera>().unwrap();
 
-    let CameraBodyMatrices {
-        world_to_view,
-        view_to_world: _,
-    } = extracted_camera.transform.into_camera_body_matrices();
-
-    let view_to_clip = extracted_camera.camera.projection_matrix();
+    let view_matrix = KajiyaCamera::view_matrix_from_pos_rot(extracted_camera.transform);
+    let projection_matrix = extracted_camera.camera.projection_matrix();
 
     if let Some(gizmo_response) = editor.transform_gizmo.last_response {
         editor.transform_gizmo.model_matrix = gizmo_response.transform;
-    }
-
-    editor.transform_gizmo.view_matrix = world_to_view.to_cols_array_2d();
-    editor.transform_gizmo.projection_matrix = view_to_clip.to_cols_array_2d();
-}
-
-pub fn update_target_transform(
-    mut editor: ResMut<EditorState>,
-    query_target: Query<Entity, With<TargetTag>>,
-    mut query_trans: Query<(&mut Transform, &KajiyaMeshInstance)>,
-) {
-    // Query to get the single entity which has `TargetTag`, meaning it is the chosen target
-    let target_entity = if let Some(target_entity) = query_target.iter().next() {
-        target_entity
     } else {
-        editor.target.entity = None;
-        return;
-    };
-
-    // Get the transform component of the target entity and mutate it
-    if let Ok((mut transform, _mesh)) = query_trans.get_mut(target_entity) {
-        if let Some(gizmo_response) = editor.transform_gizmo.last_response {
-            // The transform gizmo is active, Process any translation/rotation/scaling deltas
-            let delta: Vec3 = gizmo_response.value.into();
-
-            match gizmo_response.mode {
-                egui_gizmo::GizmoMode::Translate => {
-                    if editor.target.entity.is_none() {
-                        editor.target.entity = Some(target_entity);
-                        editor.target.target_origin = transform.translation;
-                    }
-                    transform.translation = editor.target.target_origin + delta;
-                }
-                egui_gizmo::GizmoMode::Rotate => {
-                    let delta: Vec3 = gizmo_response.value.into();
-                    let delta = delta * -1.0;
-
-                    let mut rotation = Quat::from_rotation_x(delta.x);
-                    rotation *= Quat::from_rotation_y(delta.y);
-                    rotation *= Quat::from_rotation_z(delta.z);
-                    transform.rotation = rotation * editor.target.target_orientation;
-                }
-                egui_gizmo::GizmoMode::Scale => {}
-            }
-
-            editor.transform_gizmo.last_transformation =
-                Some((gizmo_response.mode, gizmo_response.value));
-        } else {
-            // The transform gizmo is no longer active, update the saved state
-            editor.target.target_origin = transform.translation;
-            editor.target.target_orientation = transform.rotation;
-
-            // Select new target entity if possible
-            if editor.target.entity.is_none() {
-                editor.target.entity = Some(target_entity);
+        // The transform gizmo is no longer active, update the saved state
+        if let Some(target) = editor.selected_target {
+            if let Ok(transform) = query.get(target.entity.unwrap()) {
                 editor.transform_gizmo.model_matrix =
                     Mat4::from_translation(transform.translation).to_cols_array_2d();
             }
-
-            // Handle events for the frame after gizmo is released
-            if let Some((mode, transform_delta)) = editor.transform_gizmo.last_transformation.take()
-            {
-                match mode {
-                    egui_gizmo::GizmoMode::Translate => {
-                        console_info!("Translated {:?}", transform_delta);
-                    }
-                    egui_gizmo::GizmoMode::Rotate => {
-                        let degrees_rotated = transform_delta
-                            .to_vec()
-                            .iter()
-                            .map(|r| r.to_degrees())
-                            .collect::<Vec<f32>>();
-                        console_info!("Rotated {:?}", degrees_rotated.as_slice());
-                    }
-                    egui_gizmo::GizmoMode::Scale => {}
-                }
-            }
         }
     }
+
+    editor.transform_gizmo.view_matrix = view_matrix.to_cols_array_2d();
+    editor.transform_gizmo.projection_matrix = projection_matrix.to_cols_array_2d();
 }
-
-

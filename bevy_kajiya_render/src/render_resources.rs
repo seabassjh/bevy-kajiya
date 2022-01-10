@@ -1,7 +1,4 @@
-use bevy::{
-    prelude::App,
-    window::HasRawWindowHandleWrapper,
-};
+use bevy::{prelude::App, window::HasRawWindowHandleWrapper};
 use bevy_kajiya_logger::console_info;
 use kajiya::{
     backend::RenderBackend, rg::renderer::Renderer, ui_renderer::UiRenderer,
