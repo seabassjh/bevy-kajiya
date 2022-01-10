@@ -65,12 +65,12 @@ impl WindowConfig {
         let temporal_upsampling = 1.0;
 
         let render_extent = [
-            (window.requested_width() / temporal_upsampling) as u32,
-            (window.requested_height() / temporal_upsampling) as u32,
+            (window.physical_width() as f32 / temporal_upsampling) as u32,
+            (window.physical_height() as f32 / temporal_upsampling) as u32,
         ];
         let temporal_upscale_extent = [
-            window.requested_width() as u32,
-            window.requested_height() as u32,
+            window.physical_width() as u32,
+            window.physical_height() as u32,
         ];
         let swapchain_extent = [window.physical_width(), window.physical_height()];
 
