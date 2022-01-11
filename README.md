@@ -22,14 +22,13 @@ You must disable the default bevy renderer.  Additionally, a patch is required f
 
 ```
 [dependencies]
-bevy-kajiya = { git = "https://github.com/Seabass247/bevy-kajiya" }
-bevy = { git = "https://github.com/bevyengine/bevy", default-features = false, features = ["bevy_winit"] }
+bevy = { version = "0.6.0", default-features = false, features = ["bevy_winit"] }
+bevy-kajiya = { path = "../path/to/bevy-kajiya" }
 
 [patch.crates-io]
 # Official ray-tracing extensions
 rspirv = { git = "https://github.com/gfx-rs/rspirv.git", rev = "dae552c" }
 spirv_headers = { git = "https://github.com/gfx-rs/rspirv.git", rev = "dae552c" }
-
 ```
 
 `kajiya` does not support resizable windows yet.  Make sure to use these window settings (changing window width/height is fine):
