@@ -1,0 +1,12 @@
+[package]
+name = "bevy_kajiya_core"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+bevy_kajiya_render = { path = "../bevy_kajiya_render" }
+bevy = { version = "0.6.0", default-features = false, features = ["bevy_winit"] }
+[features]
+kajiya_egui = []

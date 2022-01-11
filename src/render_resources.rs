@@ -18,13 +18,27 @@ pub struct KajiyaRGRenderer {
     pub rg_renderer: Renderer,
 }
 
+#[derive(Clone, Copy)]
+pub struct WindowProperties(pub u32, pub u32, pub f64);
+
+impl WindowProperties {
+    pub fn get_size_scale(self) -> (u32, u32, f64) {
+        (self.0, self.1, self.2)
+    }
+
+    pub fn get_size(self) -> (u32, u32) {
+        (self.0, self.1)
+    }
+}
 pub struct WindowConfig {
     pub raw_window_handle: HasRawWindowHandleWrapper,
     pub swapchain_extent: [u32; 2],
     pub render_extent: [u32; 2],
     pub temporal_upscale_extent: [u32; 2],
     pub vsync: bool,
+    pub window_properties: WindowProperties,
 }
+
 pub struct RenderContext {
     pub swapchain_extent: [u32; 2],
     pub render_extent: [u32; 2],
@@ -43,7 +57,7 @@ impl WindowConfig {
     pub fn from(app: &mut App) -> Self {
         let world = app.world.cell();
         let windows = world.get_resource_mut::<bevy::window::Windows>().unwrap();
-        let window = windows.get_primary().unwrap().clone();
+        let window = windows.get_primary().unwrap();
 
         let raw_window_handle = unsafe { window.raw_window_handle().get_handle() };
 
@@ -51,8 +65,8 @@ impl WindowConfig {
         let temporal_upsampling = 1.0;
 
         let render_extent = [
-            (window.requested_width() / temporal_upsampling) as u32,
-            (window.requested_height() / temporal_upsampling) as u32,
+            (window.requested_width() as f32 / temporal_upsampling) as u32,
+            (window.requested_height() as f32 / temporal_upsampling) as u32,
         ];
         let temporal_upscale_extent = [
             window.requested_width() as u32,
@@ -66,6 +80,11 @@ impl WindowConfig {
             render_extent,
             temporal_upscale_extent,
             vsync: window.vsync(),
+            window_properties: WindowProperties(
+                window.physical_width(),
+                window.physical_height(),
+                window.scale_factor(),
+            ),
         }
     }
 }
