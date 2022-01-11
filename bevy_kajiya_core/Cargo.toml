@@ -9,7 +9,7 @@ edition = "2021"
 bevy_kajiya_egui = { path = "../bevy_kajiya_egui" }
 bevy_kajiya_editor = { path = "../bevy_kajiya_editor" }
 bevy_kajiya_render = { path = "../bevy_kajiya_render" }
-bevy = { path = "../../bevy", default-features = false, features = ["bevy_winit"] }
+bevy = { version = "0.6.0", default-features = false, features = ["bevy_winit"] }
 
 [features]
 kajiya_egui = []

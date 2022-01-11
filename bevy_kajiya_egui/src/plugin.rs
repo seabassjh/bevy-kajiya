@@ -7,7 +7,7 @@ use kajiya_egui_backend::egui::{self, Color32, Modifiers, RawInput, Stroke};
 use kajiya_egui_backend::{egui::CtxRef, EguiBackend};
 
 use bevy_kajiya_render::{
-    plugin::{KajiyaRenderStage, KajiyaRendererApp, RenderWorld},
+    plugin::{KajiyaRenderStage, KajiyaRenderApp, RenderWorld},
     render_resources::{KajiyaRGRenderer, KajiyaRenderers, RenderContext, WindowProperties},
 };
 
@@ -36,7 +36,7 @@ pub struct KajiyaEguiPlugin;
 
 impl Plugin for KajiyaEguiPlugin {
     fn build(&self, app: &mut App) {
-        let render_app = app.sub_app(KajiyaRendererApp);
+        let render_app = app.sub_app_mut(KajiyaRenderApp);
 
         let rg_renderer = render_app
             .world

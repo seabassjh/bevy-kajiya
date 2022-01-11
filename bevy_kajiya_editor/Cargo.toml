@@ -6,7 +6,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-bevy = { path = "../../bevy", default-features = false, features = ["bevy_winit"] }
+bevy = { version = "0.6.0", default-features = false, features = ["bevy_winit"] }
 kajiya = { path = "../../kajiya/crates/lib/kajiya" }
 egui-gizmo = { path = "../../egui-gizmo" }
 bevy_kajiya_egui = { path = "../bevy_kajiya_egui" }

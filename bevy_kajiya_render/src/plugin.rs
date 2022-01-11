@@ -68,7 +68,7 @@ impl DerefMut for RenderWorld {
 
 /// A Label for the rendering sub-app.
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, AppLabel)]
-pub struct KajiyaRendererApp;
+pub struct KajiyaRenderApp;
 
 /// A "scratch" world used to avoid allocating new worlds every frame when
 /// swapping out the [`RenderWorld`].
@@ -172,7 +172,7 @@ impl Plugin for KajiyaRenderPlugin {
         // });
 
         app.add_sub_app(
-            KajiyaRendererApp,
+            KajiyaRenderApp,
             render_app,
             move |app_world, render_app| {
                 #[cfg(feature = "trace")]

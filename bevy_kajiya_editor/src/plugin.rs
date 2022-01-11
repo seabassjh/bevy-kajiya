@@ -5,7 +5,7 @@ use bevy_kajiya_egui::egui::{LayerId, ScrollArea, Slider};
 use bevy_kajiya_egui::{egui, EguiContext};
 use bevy_kajiya_logger::{console_info, get_console_logs};
 use bevy_kajiya_render::camera::ExtractedCamera;
-use bevy_kajiya_render::plugin::{KajiyaRenderStage, KajiyaRendererApp};
+use bevy_kajiya_render::plugin::{KajiyaRenderStage, KajiyaRenderApp};
 use bevy_kajiya_render::{KajiyaMeshInstance, KajiyaCamera};
 use egui_gizmo::{GizmoMode, Ray};
 use kajiya::camera::{CameraBodyMatrices, IntoCameraBodyMatrices};
@@ -21,7 +21,7 @@ impl Plugin for KajiyaEditorPlugin {
         app.add_system(update_target_transform);
         app.add_system(process_input);
         app.add_system(pick_meshes);
-        app.sub_app(KajiyaRendererApp)
+        app.sub_app_mut(KajiyaRenderApp)
             .add_system_to_stage(KajiyaRenderStage::Extract, update_transform_gizmo)
             .add_system_to_stage(
                 KajiyaRenderStage::Extract,
