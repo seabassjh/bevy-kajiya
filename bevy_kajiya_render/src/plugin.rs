@@ -16,17 +16,17 @@ use std::ops::{Deref, DerefMut};
 use std::sync::Mutex;
 use turbosloth::LazyCache;
 
-use crate::{camera::extract_camera, mesh::extract_meshes};
 use crate::frame::render_frame;
-use crate::renderer::{
+use crate::render_resources::{
     KajiyaRGRenderer, KajiyaRenderBackend, KajiyaRenderers, RenderContext, WindowConfig,
 };
-use crate::scene::{setup_scene_view, update_scene_view};
+use crate::world_renderer::{setup_world_renderer, update_world_renderer};
 use crate::KajiyaSceneDescriptor;
+use crate::{camera::extract_camera, mesh::extract_meshes};
 
 /// Contains the Bevy interface to the Kajiya renderer.
 #[derive(Default)]
-pub struct KajiyaRendererPlugin;
+pub struct KajiyaRenderPlugin;
 
 /// The labels of the default App rendering stages.
 #[derive(Debug, Hash, PartialEq, Eq, Clone, StageLabel)]
@@ -75,11 +75,11 @@ pub struct KajiyaRendererApp;
 #[derive(Default)]
 struct ScratchRenderWorld(World);
 
-impl Plugin for KajiyaRendererPlugin {
+impl Plugin for KajiyaRenderPlugin {
     /// Initializes the renderer, sets up the [`KajiyaRenderStage`](KajiyaRenderStage) and creates the rendering sub-app.
     fn build(&self, app: &mut App) {
         // Point `kajiya` to standard assets and shaders in the parent directory
-        set_standard_vfs_mount_points("./bevy-kajiya/kajiya");
+        set_standard_vfs_mount_points("./kajiya");
 
         // Game-specific assets in the current directory
         set_vfs_mount_point("/baked", "./baked");
@@ -90,6 +90,7 @@ impl Plugin for KajiyaRendererPlugin {
             render_extent,
             temporal_upscale_extent,
             vsync,
+            window_properties,
         } = WindowConfig::from(app);
         let render_context = RenderContext {
             swapchain_extent,
@@ -121,8 +122,6 @@ impl Plugin for KajiyaRendererPlugin {
 
         let rg_renderer = kajiya::rg::renderer::Renderer::new(&render_backend).unwrap();
 
-        app.init_resource::<ScratchRenderWorld>();
-
         let kajiya_renderers = KajiyaRenderers {
             world_renderer: Mutex::new(world_renderer),
             ui_renderer: Mutex::new(ui_renderer),
@@ -139,12 +138,14 @@ impl Plugin for KajiyaRendererPlugin {
             .map(|descriptor| (*descriptor).clone())
             .unwrap_or_default();
 
+        app.init_resource::<ScratchRenderWorld>();
+
         render_app
             .add_stage(
                 KajiyaRenderStage::Setup,
                 SystemStage::parallel()
                     .with_run_criteria(RunOnce::default())
-                    .with_system(setup_scene_view.exclusive_system().at_start()),
+                    .with_system(setup_world_renderer.exclusive_system().at_start()),
             )
             .add_stage(
                 KajiyaRenderStage::Extract,
@@ -154,7 +155,7 @@ impl Plugin for KajiyaRendererPlugin {
             )
             .add_stage(
                 KajiyaRenderStage::Prepare,
-                SystemStage::single(update_scene_view),
+                SystemStage::single(update_world_renderer),
             )
             .add_stage(KajiyaRenderStage::Render, SystemStage::single(render_frame))
             .add_stage(KajiyaRenderStage::Cleanup, SystemStage::parallel())
@@ -162,7 +163,8 @@ impl Plugin for KajiyaRendererPlugin {
             .insert_resource(render_backend)
             .insert_non_send_resource(rg_renderer)
             .insert_resource(render_context)
-            .insert_resource(scene_descriptor);
+            .insert_resource(scene_descriptor)
+            .insert_resource(window_properties);
 
         // render_app.schedule
         // .stage("yak", |schedule: &mut Schedule| {
@@ -262,7 +264,7 @@ impl Plugin for KajiyaRendererPlugin {
             },
         );
 
-        // app.add_plugin(WindowKajiyaRendererPlugin)
+        // app.add_plugin(WindowKajiyaRenderPlugin)
         //     .add_plugin(CameraPlugin)
         //     .add_plugin(ViewPlugin)
         //     .add_plugin(MeshPlugin)

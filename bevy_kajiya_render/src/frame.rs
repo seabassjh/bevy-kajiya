@@ -1,7 +1,9 @@
 use bevy::ecs::prelude::*;
 use kajiya::{frame_desc::WorldFrameDesc, rg};
 
-use crate::renderer::{KajiyaRGRenderer, KajiyaRenderBackend, KajiyaRenderers, RenderContext};
+use crate::render_resources::{
+    KajiyaRGRenderer, KajiyaRenderBackend, KajiyaRenderers, RenderContext,
+};
 
 pub fn render_frame(
     wr_res: NonSendMut<KajiyaRenderers>,
@@ -25,6 +27,7 @@ pub fn render_frame(
         let dt_raw = dt_duration.as_secs_f32();
         render_ctx.delta_seconds + (dt_raw - render_ctx.delta_seconds) / 10.0
     };
+    render_ctx.delta_seconds = dt_filtered;
 
     let prepared_frame = {
         rg_renderer.prepare_frame(|rg| {

@@ -1,9 +1,6 @@
 use std::fs::File;
 
-use bevy::{
-    prelude::*,
-    utils::HashMap,
-};
+use bevy::{prelude::*, utils::HashMap};
 use glam::{Quat, Vec3};
 use kajiya::{
     camera::{CameraLens, LookThroughCamera},
@@ -13,8 +10,12 @@ use kajiya::{
 
 use crate::{
     camera::{ExtractedCamera, KajiyaCamera},
-    mesh::{MeshInstanceExtracted, RenderInstance, RenderInstances, MeshInstanceExtractedBundle, MeshInstanceType},
-    renderer::{KajiyaRenderers, RenderContext}, KajiyaSceneDescriptor
+    mesh::{
+        MeshInstanceExtracted, MeshInstanceExtractedBundle, MeshInstanceType, RenderInstance,
+        RenderInstances,
+    },
+    render_resources::{KajiyaRenderers, RenderContext},
+    KajiyaSceneDescriptor,
 };
 
 #[derive(serde::Deserialize)]
@@ -47,27 +48,7 @@ impl SunState {
     }
 }
 
-#[derive(Clone, serde::Serialize, serde::Deserialize)]
-pub struct LocalLightsState {
-    pub theta: f32,
-    pub phi: f32,
-    pub count: u32,
-    pub distance: f32,
-    pub multiplier: f32,
-}
-
-#[derive(Clone, serde::Serialize, serde::Deserialize)]
-pub struct SceneViewState {
-    pub camera_position: Vec3,
-    pub camera_rotation: Quat,
-    pub vertical_fov: f32,
-    pub emissive_multiplier: f32,
-    pub sun: SunState,
-    pub lights: LocalLightsState,
-    pub ev_shift: f32,
-}
-
-pub fn setup_scene_view(
+pub fn setup_world_renderer(
     mut commands: Commands,
     wr_res: NonSendMut<KajiyaRenderers>,
     scene: Res<KajiyaSceneDescriptor>,
@@ -126,7 +107,7 @@ pub fn setup_scene_view(
     commands.insert_resource(extracted_camera);
 }
 
-pub fn update_scene_view(
+pub fn update_world_renderer(
     wr_res: NonSendMut<KajiyaRenderers>,
     mut frame_desc: ResMut<WorldFrameDesc>,
     extracted_camera: Res<ExtractedCamera>,
@@ -155,7 +136,7 @@ pub fn update_scene_view(
                             "Kajiya error: could not find baked mesh {}",
                             extracted_instance.mesh_name
                         ));
-        
+
                     render_instances.user_instances.insert(
                         *entity,
                         RenderInstance {
@@ -164,7 +145,7 @@ pub fn update_scene_view(
                         },
                     );
                 }
-            },
+            }
             MeshInstanceType::SceneInstanced(mesh_indx) => {
                 if let Some(render_instance) = render_instances.scene_instances.get(&mesh_indx) {
                     world_renderer.set_instance_transform(
@@ -182,7 +163,7 @@ pub fn update_scene_view(
                             "Kajiya error: could not find baked mesh {}",
                             extracted_instance.mesh_name
                         ));
-        
+
                     render_instances.scene_instances.insert(
                         *mesh_indx,
                         RenderInstance {
@@ -190,8 +171,8 @@ pub fn update_scene_view(
                             transform: (new_pos, new_rot),
                         },
                     );
-                }   
-            },
+                }
+            }
         }
     }
 
