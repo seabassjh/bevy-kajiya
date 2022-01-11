@@ -31,15 +31,13 @@ rspirv = { git = "https://github.com/gfx-rs/rspirv.git", rev = "dae552c" }
 spirv_headers = { git = "https://github.com/gfx-rs/rspirv.git", rev = "dae552c" }
 ```
 
-`kajiya` does not support resizable windows yet.  Make sure to use these window settings (changing window width/height is fine):
+`kajiya` does not support resizable windows yet.  The window might be larger than anticipated due to the OS' DPI settings, so you may have to decrease the requested resolution.  Make sure to use these window settings:
 ```
     .insert_resource(WindowDescriptor {
-        title: "Bevy Kajiya Playground".to_string(),
         width: 1920.,
         height: 1080.,
         vsync: false,
         resizable: false,
-        scale_factor_override: Some(1.0),
         ..Default::default()
     })
 ```
@@ -62,7 +60,7 @@ You specify the scene to be loaded on startup with the `KajiyaSceneDescriptor` r
 
 ### Scene Format Example
 
-The renderer looks for all meshes in `assets/meshes/*`.  In this example, the mesh files should be located in `assets/meshes/336_lrm/` and `assets/meshes/floor/`
+The renderer looks for all meshes in `assets/meshes/`.  In this example, the mesh files should be located in `assets/meshes/336_lrm/` and `assets/meshes/floor/`
 
 ```
 (
