@@ -340,7 +340,6 @@ name = "bevy-kajiya"
 version = "0.1.0"
 dependencies = [
  "bevy_kajiya_core",
- "bevy_kajiya_editor",
  "bevy_kajiya_egui",
  "bevy_kajiya_render",
 ]
@@ -481,21 +480,8 @@ name = "bevy_kajiya_core"
 version = "0.1.0"
 dependencies = [
  "bevy",
- "bevy_kajiya_editor",
  "bevy_kajiya_egui",
  "bevy_kajiya_render",
-]
-
-[[package]]
-name = "bevy_kajiya_editor"
-version = "0.1.0"
-dependencies = [
- "bevy",
- "bevy_kajiya_egui",
- "bevy_kajiya_logger",
- "bevy_kajiya_render",
- "egui-gizmo",
- "kajiya",
 ]
 
 [[package]]
@@ -503,17 +489,9 @@ name = "bevy_kajiya_egui"
 version = "0.1.0"
 dependencies = [
  "bevy",
- "bevy_kajiya_logger",
  "bevy_kajiya_render",
  "kajiya",
  "kajiya-egui",
-]
-
-[[package]]
-name = "bevy_kajiya_logger"
-version = "0.1.0"
-dependencies = [
- "lazy_static",
 ]
 
 [[package]]
@@ -1237,14 +1215,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "egui-gizmo"
-version = "0.4.1"
-dependencies = [
- "egui",
- "glam 0.19.0",
-]
-
-[[package]]
 name = "emath"
 version = "0.16.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1554,12 +1524,6 @@ dependencies = [
  "num-traits",
  "serde",
 ]
-
-[[package]]
-name = "glam"
-version = "0.19.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2b8509e6791516e81c1a630d0bd7fbac36d2fa8712a9da8662e716b52d5051ca"
 
 [[package]]
 name = "glam"

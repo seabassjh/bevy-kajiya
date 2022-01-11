@@ -1,5 +1,5 @@
 use bevy::{math, prelude::*, utils::HashMap};
-use glam::{Quat, Vec3, Vec3A};
+use glam::{Quat, Vec3};
 use kajiya::world_renderer::InstanceHandle;
 
 use crate::plugin::RenderWorld;
