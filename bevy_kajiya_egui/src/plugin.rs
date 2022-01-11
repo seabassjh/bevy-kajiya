@@ -36,7 +36,7 @@ pub struct KajiyaEguiPlugin;
 
 impl Plugin for KajiyaEguiPlugin {
     fn build(&self, app: &mut App) {
-        let render_app = app.sub_app(KajiyaRendererApp);
+        let render_app = app.sub_app_mut(KajiyaRendererApp);
 
         let rg_renderer = render_app
             .world
