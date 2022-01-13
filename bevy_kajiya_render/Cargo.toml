@@ -8,7 +8,6 @@ edition = "2021"
 [dependencies]
 bevy = { version = "0.6.0", default-features = false, features = ["bevy_winit"] }
 kajiya = { path = "../../kajiya/crates/lib/kajiya" }
-bevy_kajiya_logger = { path = "../bevy_kajiya_logger" }
 
 anyhow = "1.0"
 imgui = "0.7"
