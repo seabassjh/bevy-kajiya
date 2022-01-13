@@ -19,3 +19,4 @@ bevy_kajiya_egui = { path = "bevy_kajiya_egui" }
 
 [features]
 kajiya_egui = ["bevy_kajiya_core/kajiya_egui"]
+default = [ "kajiya_egui" ]

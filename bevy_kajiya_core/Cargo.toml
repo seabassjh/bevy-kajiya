@@ -12,4 +12,3 @@ bevy = { version = "0.6.0", default-features = false, features = ["bevy_winit"] 
 
 [features]
 kajiya_egui = []
-
