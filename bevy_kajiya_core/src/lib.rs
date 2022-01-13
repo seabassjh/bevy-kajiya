@@ -1,8 +1,9 @@
 use bevy::{app::PluginGroupBuilder, prelude::*};
 
+use bevy_kajiya_render::KajiyaRenderPlugin;
+
 #[cfg(feature = "kajiya_egui")]
 use bevy_kajiya_egui::KajiyaEguiPlugin;
-use bevy_kajiya_render::KajiyaRenderPlugin;
 
 pub struct BevyKajiyaPlugins;
 
