@@ -72,7 +72,6 @@ impl KajiyaCamera {
         let pos = Vec3::new(pos.x, pos.y, pos.z);
         let rot = Quat::from_xyzw(rot.x, rot.y, rot.z, rot.w);
         let transform = (pos, rot);
-
         Self::view_matrix_from_pos_rot(transform)
     }
 

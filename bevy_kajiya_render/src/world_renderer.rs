@@ -1,7 +1,7 @@
 use std::fs::File;
 
 use bevy::{prelude::*, utils::HashMap};
-use glam::{Quat, Vec3};
+use glam::{Quat, Vec3, Affine3A};
 use kajiya::{
     camera::{CameraLens, LookThroughCamera},
     frame_desc::WorldFrameDesc,
@@ -123,8 +123,7 @@ pub fn update_world_renderer(
                 if let Some(render_instance) = render_instances.user_instances.get(&entity) {
                     world_renderer.set_instance_transform(
                         render_instance.instance_handle,
-                        new_pos,
-                        new_rot,
+                        Affine3A::from_rotation_translation(new_rot, new_pos)
                     );
                 } else {
                     let mesh = world_renderer
@@ -140,7 +139,7 @@ pub fn update_world_renderer(
                     render_instances.user_instances.insert(
                         *entity,
                         RenderInstance {
-                            instance_handle: world_renderer.add_instance(mesh, new_pos, new_rot),
+                            instance_handle: world_renderer.add_instance(mesh, Affine3A::from_rotation_translation(new_rot, new_pos)),
                             transform: (new_pos, new_rot),
                         },
                     );
@@ -150,8 +149,7 @@ pub fn update_world_renderer(
                 if let Some(render_instance) = render_instances.scene_instances.get(&mesh_indx) {
                     world_renderer.set_instance_transform(
                         render_instance.instance_handle,
-                        new_pos,
-                        new_rot,
+                        Affine3A::from_rotation_translation(new_rot, new_pos),
                     );
                 } else {
                     let mesh = world_renderer
@@ -167,7 +165,7 @@ pub fn update_world_renderer(
                     render_instances.scene_instances.insert(
                         *mesh_indx,
                         RenderInstance {
-                            instance_handle: world_renderer.add_instance(mesh, new_pos, new_rot),
+                            instance_handle: world_renderer.add_instance(mesh, Affine3A::from_rotation_translation(new_rot, new_pos)),
                             transform: (new_pos, new_rot),
                         },
                     );
