@@ -11,3 +11,4 @@ kajiya = { path = "../../kajiya/crates/lib/kajiya" }
 bevy_kajiya_render = { path = "../bevy_kajiya_render" }
 kajiya-egui-backend = { path = "../../kajiya/crates/lib/kajiya-egui", package = "kajiya-egui" }
 bevy_kajiya_logger = { path = "../bevy_kajiya_logger" }
+egui = "0.16.1"

@@ -3,8 +3,8 @@ use bevy::{
     input::mouse::{MouseScrollUnit, MouseWheel},
     prelude::*,
 };
-use kajiya_egui_backend::egui::{self, Color32, Modifiers, RawInput, Stroke};
-use kajiya_egui_backend::{egui::CtxRef, EguiBackend};
+use egui::{self, CtxRef, Color32, Modifiers, RawInput, Stroke};
+use kajiya_egui_backend::EguiBackend;
 
 use bevy_kajiya_render::{
     plugin::{KajiyaRenderStage, KajiyaRenderApp, RenderWorld},
