@@ -139,6 +139,10 @@ impl Plugin for KajiyaRenderPlugin {
             .unwrap_or_default();
 
         app.init_resource::<ScratchRenderWorld>();
+        app
+            .add_asset::<crate::asset::GltfMeshAsset>()
+            .init_asset_loader::<crate::asset::GltfMeshAssetLoader>()
+            .add_startup_system(crate::asset::setup_assets);
 
         render_app
             .add_stage(
@@ -151,7 +155,8 @@ impl Plugin for KajiyaRenderPlugin {
                 KajiyaRenderStage::Extract,
                 SystemStage::parallel()
                     .with_system(extract_camera)
-                    .with_system(extract_meshes),
+                    .with_system(extract_meshes)
+                    .with_system(crate::asset::watch_asset),
             )
             .add_stage(
                 KajiyaRenderStage::Prepare,
@@ -159,6 +164,7 @@ impl Plugin for KajiyaRenderPlugin {
             )
             .add_stage(KajiyaRenderStage::Render, SystemStage::single(render_frame))
             .add_stage(KajiyaRenderStage::Cleanup, SystemStage::parallel())
+            .init_resource::<crate::asset::MeshAssetsState>()
             .insert_non_send_resource(kajiya_renderers)
             .insert_resource(render_backend)
             .insert_non_send_resource(rg_renderer)

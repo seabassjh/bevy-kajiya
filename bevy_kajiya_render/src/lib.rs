@@ -1,5 +1,6 @@
 pub mod camera;
 mod frame;
+mod asset;
 pub mod mesh;
 pub mod plugin;
 pub mod render_resources;

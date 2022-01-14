@@ -1,8 +1,10 @@
+use std::collections::HashSet;
+
 use bevy::{math, prelude::*, utils::HashMap};
 use glam::{Quat, Vec3};
-use kajiya::world_renderer::InstanceHandle;
+use kajiya::world_renderer::{InstanceHandle, MeshHandle};
 
-use crate::plugin::RenderWorld;
+use crate::{plugin::RenderWorld, asset::register_unique_gltf_asset};
 
 /// An Axis-Aligned Bounding Box
 #[derive(Component, Clone, Debug, Default)]
@@ -52,12 +54,14 @@ impl Aabb {
 
 pub struct RenderInstance {
     pub instance_handle: InstanceHandle,
+    pub mesh_handle: MeshHandle,
     pub transform: (Vec3, Quat),
 }
 
 pub struct RenderInstances {
     pub user_instances: HashMap<Entity, RenderInstance>,
-    pub scene_instances: HashMap<usize, RenderInstance>,
+    pub unique_meshes: HashMap<String, MeshHandle>,
+    pub scene_mesh_instance_queue: Vec<(KajiyaMeshInstance, Transform)>,
 }
 
 #[derive(Bundle, Default)]
@@ -69,8 +73,7 @@ pub struct KajiyaMeshInstanceBundle {
 
 #[derive(Clone)]
 pub enum KajiyaMesh {
-    User(String),
-    Scene(usize, String),
+    Name(String),
     None,
 }
 
@@ -100,7 +103,7 @@ impl Default for KajiyaMeshInstance {
 
 #[derive(Component, Clone)]
 pub struct MeshInstanceExtracted {
-    pub instance_type: MeshInstanceType,
+    pub instance_entity: Entity,
     pub mesh_name: String,
     pub transform: (Vec3, Quat),
     pub scale: f32,
@@ -114,39 +117,64 @@ pub struct MeshInstanceExtractedBundle {
 // TODO: query for KajiyaMeshInstance(s) and internal render entity accordingly
 // NOTE: don't forget to drain entities before next cycle to avoid entity duplicates
 pub fn extract_meshes(
+    mut commands: Commands,
     query: Query<
         (Entity, &GlobalTransform, &KajiyaMeshInstance),
         (Changed<GlobalTransform>, With<KajiyaMeshInstance>),
     >,
     mut render_world: ResMut<RenderWorld>,
+    mut asset_server: ResMut<AssetServer>,
 ) {
-    // let mut render_instances_map = render_world.get_resource_mut::<RenderInstances>().unwrap();
-
+    let mut render_instances = render_world.get_resource_mut::<RenderInstances>().unwrap();
     let mut mesh_instances: Vec<MeshInstanceExtractedBundle> = vec![];
+    
+    // Extract any meshes instanced by the scene
+    while let Some((instance, instance_transform)) = render_instances.scene_mesh_instance_queue.pop() {
+
+        let mesh_name = match instance.mesh {
+            KajiyaMesh::Name(name) => name,
+            KajiyaMesh::None => return,
+        };
+
+        register_unique_gltf_asset(&mut asset_server, &render_instances, &mesh_name);
+
+        let entity = commands.spawn_bundle(KajiyaMeshInstanceBundle {
+            mesh_instance: KajiyaMeshInstance { 
+                mesh: KajiyaMesh::Name(mesh_name.clone()),
+                scale: instance.scale,
+            },
+            transform: instance_transform,
+            ..Default::default()
+        }).id();
+
+        let pos = instance_transform.translation;
+        let rot = instance_transform.rotation;
+        let transform = (Vec3::new(pos.x, pos.y, pos.z), Quat::from_xyzw(rot.x, rot.y, rot.z, rot.w));
+
+        mesh_instances.push(MeshInstanceExtractedBundle {
+            mesh_instance: MeshInstanceExtracted {
+                instance_entity: entity,
+                mesh_name,
+                transform,
+                scale: instance.scale,
+            },
+        });
+    }
+
     for (entity, transform, mesh_instance) in query.iter() {
         let pos = transform.translation;
         let rot = transform.rotation;
-
-        let pos = Vec3::new(pos.x, pos.y, pos.z);
-        let rot = Quat::from_xyzw(rot.x, rot.y, rot.z, rot.w);
+        let transform = (Vec3::new(pos.x, pos.y, pos.z), Quat::from_xyzw(rot.x, rot.y, rot.z, rot.w));
 
         match &mesh_instance.mesh {
-            KajiyaMesh::User(mesh_name) => {
+            KajiyaMesh::Name(mesh_name) => {
+                register_unique_gltf_asset(&mut asset_server, &render_instances, &mesh_name);
+
                 mesh_instances.push(MeshInstanceExtractedBundle {
                     mesh_instance: MeshInstanceExtracted {
-                        instance_type: MeshInstanceType::UserInstanced(entity),
+                        instance_entity: entity,
                         mesh_name: mesh_name.to_string(),
-                        transform: (pos, rot),
-                        scale: mesh_instance.scale,
-                    },
-                });
-            }
-            KajiyaMesh::Scene(mesh_indx, mesh_name) => {
-                mesh_instances.push(MeshInstanceExtractedBundle {
-                    mesh_instance: MeshInstanceExtracted {
-                        instance_type: MeshInstanceType::SceneInstanced(*mesh_indx),
-                        mesh_name: mesh_name.to_string(),
-                        transform: (pos, rot),
+                        transform,
                         scale: mesh_instance.scale,
                     },
                 });

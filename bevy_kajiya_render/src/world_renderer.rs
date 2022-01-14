@@ -1,11 +1,11 @@
-use std::fs::File;
+use std::{fs::File, fmt::format, collections::HashSet};
 
-use bevy::{prelude::*, utils::HashMap};
+use bevy::{prelude::*, utils::HashMap, reflect::List};
 use glam::{Quat, Vec3, Affine3A};
 use kajiya::{
     camera::{CameraLens, LookThroughCamera},
     frame_desc::WorldFrameDesc,
-    world_renderer::AddMeshOptions,
+    world_renderer::{AddMeshOptions, MeshHandle, WorldRenderer},
 };
 
 use crate::{
@@ -15,7 +15,7 @@ use crate::{
         RenderInstances,
     },
     render_resources::{KajiyaRenderers, RenderContext},
-    KajiyaSceneDescriptor, KajiyaMeshInstanceBundle, KajiyaMeshInstance, KajiyaMesh,
+    KajiyaSceneDescriptor, KajiyaMeshInstanceBundle, KajiyaMeshInstance, KajiyaMesh, asset::{MeshAssetsState, GltfMeshAsset},
 };
 
 #[derive(serde::Deserialize)]
@@ -64,27 +64,23 @@ pub fn setup_world_renderer(
 
     world_renderer.world_gi_scale = scene.gi_volume_scale;
 
-    let mut scene_instances = Vec::new();
-    for (_indx, instance) in scene_desc.instances.iter().enumerate() {
-        let position: [f32; 3] = instance.position.into();
-        let rotation = Quat::IDENTITY;
+    let mut render_instances = RenderInstances {
+        user_instances: HashMap::default(),
+        unique_meshes: HashMap::default(),
+        scene_mesh_instance_queue: Vec::default(),
+    };
 
-        let entity = commands.spawn_bundle(KajiyaMeshInstanceBundle {
-            mesh_instance: KajiyaMeshInstance { 
-                mesh: KajiyaMesh::User(instance.mesh.clone()),
-                scale: instance.scale,
-            },
-            transform: Transform::from_translation(position.into()),
-            ..Default::default()
-        }).id();
-        scene_instances.push(MeshInstanceExtractedBundle {
-            mesh_instance: MeshInstanceExtracted {
-                instance_type: MeshInstanceType::UserInstanced(entity),
-                mesh_name: instance.mesh.clone(),
-                transform: (position.into(), rotation),
-                scale: instance.scale,
-            },
-        });
+    for instance in scene_desc.instances.iter() {
+        let position: [f32; 3] = instance.position.into();
+
+        let mesh_instance = KajiyaMeshInstance { 
+            mesh: KajiyaMesh::Name(instance.mesh.clone()),
+            scale: instance.scale,
+        };
+        let instance_transform = Transform::from_translation(position.into());
+        
+        render_instances.
+            scene_mesh_instance_queue.push((mesh_instance, instance_transform));
     }
 
     let extracted_camera = ExtractedCamera {
@@ -106,12 +102,6 @@ pub fn setup_world_renderer(
         sun_direction: extracted_camera.environment.sun_theta_phi.direction(),
     };
 
-    let render_instances = RenderInstances {
-        user_instances: HashMap::default(),
-        scene_instances: HashMap::default(),
-    };
-
-    commands.spawn_batch(scene_instances);
     commands.insert_resource(render_instances);
     commands.insert_resource(frame_desc);
     commands.insert_resource(extracted_camera);
@@ -123,68 +113,55 @@ pub fn update_world_renderer(
     extracted_camera: Res<ExtractedCamera>,
     mut render_instances: ResMut<RenderInstances>,
     query_extracted_instances: Query<&MeshInstanceExtracted>,
+    mut mesh_assets: ResMut<MeshAssetsState>,
 ) {
     let mut world_renderer = wr_res.world_renderer.lock().unwrap();
 
     for extracted_instance in query_extracted_instances.iter() {
+        let mesh_src_path = format!("assets/meshes/{}/scene.gltf", extracted_instance.mesh_name);
+
         let (new_pos, new_rot) = extracted_instance.transform;
-        match &extracted_instance.instance_type {
-            MeshInstanceType::UserInstanced(entity) => {
-                if let Some(render_instance) = render_instances.user_instances.get(&entity) {
-                    world_renderer.set_instance_transform(
-                        render_instance.instance_handle,
-                        Affine3A::from_rotation_translation(new_rot, new_pos)
-                    );
-                } else {
-                    let mesh = world_renderer
-                        .load_gltf_mesh(
-                            format!("assets/meshes/{}/scene.gltf", extracted_instance.mesh_name),
-                            extracted_instance.scale,
-                            AddMeshOptions::new(),
-                        )
-                        .expect(&format!(
-                            "Kajiya error: could not find baked mesh {}",
-                            extracted_instance.mesh_name
-                        ));
+        if let Some(render_instance) = render_instances.user_instances.get_mut(&extracted_instance.instance_entity) {
+            // Extracted instance already exists as a WorldRenderer instance, handle updates
 
-                    render_instances.user_instances.insert(
-                        *entity,
-                        RenderInstance {
-                            instance_handle: world_renderer.add_instance(mesh, Affine3A::from_rotation_translation(new_rot, new_pos)),
-                            transform: (new_pos, new_rot),
-                        },
-                    );
-                }
-            }
-            MeshInstanceType::SceneInstanced(mesh_indx) => {
-                if let Some(render_instance) = render_instances.scene_instances.get(&mesh_indx) {
-                    world_renderer.set_instance_transform(
-                        render_instance.instance_handle,
-                        Affine3A::from_rotation_translation(new_rot, new_pos),
-                    );
-                } else {
-                    let mesh = world_renderer
-                        // .add_baked_mesh(
-                        //     format!("/baked/{}.mesh", extracted_instance.mesh_name),
-                        .load_gltf_mesh(
-                            format!("assets/meshes/{}/scene.gltf", extracted_instance.mesh_name),
-                            extracted_instance.scale,
-                            AddMeshOptions::new(),
-                        )
-                        .expect(&format!(
-                            "Kajiya error: could not find baked mesh {}",
-                            extracted_instance.mesh_name
-                        ));
+            let mesh_asset = GltfMeshAsset::from_src_path(mesh_src_path.clone());
+            if mesh_assets.meshes_changed.contains(&mesh_asset) {
+                // This mesh instance has its mesh source file changed, re-instance mesh with updated source file
 
-                    render_instances.scene_instances.insert(
-                        *mesh_indx,
-                        RenderInstance {
-                            instance_handle: world_renderer.add_instance(mesh, Affine3A::from_rotation_translation(new_rot, new_pos)),
-                            transform: (new_pos, new_rot),
-                        },
-                    );
-                }
+                world_renderer.remove_instance(render_instance.instance_handle);
+                
+                let mesh = load_mesh_from_gltf_src(&mut world_renderer, mesh_src_path, extracted_instance.scale);
+                render_instance.instance_handle = world_renderer.add_instance(mesh, Affine3A::from_rotation_translation(new_rot, new_pos));
+
+                mesh_assets.meshes_changed.remove(&mesh_asset);
+            } else {
+                // Otherwise, the normal case, update this mesh transform for its WorldRenderer instance
+                
+                world_renderer.set_instance_transform(
+                    render_instance.instance_handle,
+                    Affine3A::from_rotation_translation(new_rot, new_pos)
+                );
             }
+        } else {
+            // No render instance exists for this mesh instance, add a new and unique WorldRenderer instance
+
+            // Instance a mesh from gltf only if we haven't done so for this mesh already
+            let mesh = if let Some(mesh_handle) = render_instances.unique_meshes.get(&extracted_instance.mesh_name) {
+                *mesh_handle
+            } else {
+                load_mesh_from_gltf_src(&mut world_renderer, mesh_src_path, extracted_instance.scale)
+            };
+
+            render_instances.user_instances.insert(
+                extracted_instance.instance_entity,
+                RenderInstance {
+                    instance_handle: world_renderer.add_instance(mesh, Affine3A::from_rotation_translation(new_rot, new_pos)),
+                    mesh_handle: mesh,
+                    transform: (new_pos, new_rot),
+                },
+            );
+            
+            render_instances.unique_meshes.insert(extracted_instance.mesh_name.clone(), mesh);
         }
     }
 
@@ -196,4 +173,17 @@ pub fn update_world_renderer(
     };
     frame_desc.camera_matrices = extracted_camera.transform.through(&lens);
     frame_desc.sun_direction = extracted_camera.environment.sun_theta_phi.direction();
+}
+
+fn load_mesh_from_gltf_src(world_renderer: &mut WorldRenderer, gltf_src_path: String, scale: f32) -> MeshHandle {
+    world_renderer
+    .load_gltf_mesh(
+        &gltf_src_path,
+        scale,
+        AddMeshOptions::new(),
+    )
+    .expect(&format!(
+        "Kajiya error: could not find gltf {}",
+        gltf_src_path
+    ))
 }
