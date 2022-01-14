@@ -15,7 +15,7 @@ use crate::{
         RenderInstances,
     },
     render_resources::{KajiyaRenderers, RenderContext},
-    KajiyaSceneDescriptor,
+    KajiyaSceneDescriptor, KajiyaMeshInstanceBundle, KajiyaMeshInstance, KajiyaMesh,
 };
 
 #[derive(serde::Deserialize)]
@@ -27,6 +27,7 @@ pub struct SceneDesc {
 pub struct SceneInstanceDesc {
     pub position: [f32; 3],
     pub mesh: String,
+    pub scale: f32,
 }
 
 #[derive(Clone, serde::Serialize, serde::Deserialize, Default)]
@@ -64,15 +65,24 @@ pub fn setup_world_renderer(
     world_renderer.world_gi_scale = scene.gi_volume_scale;
 
     let mut scene_instances = Vec::new();
-    for (indx, instance) in scene_desc.instances.iter().enumerate() {
-        let position = instance.position.into();
+    for (_indx, instance) in scene_desc.instances.iter().enumerate() {
+        let position: [f32; 3] = instance.position.into();
         let rotation = Quat::IDENTITY;
 
+        let entity = commands.spawn_bundle(KajiyaMeshInstanceBundle {
+            mesh_instance: KajiyaMeshInstance { 
+                mesh: KajiyaMesh::User(instance.mesh.clone()),
+                scale: instance.scale,
+            },
+            transform: Transform::from_translation(position.into()),
+            ..Default::default()
+        }).id();
         scene_instances.push(MeshInstanceExtractedBundle {
             mesh_instance: MeshInstanceExtracted {
-                instance_type: MeshInstanceType::SceneInstanced(indx),
+                instance_type: MeshInstanceType::UserInstanced(entity),
                 mesh_name: instance.mesh.clone(),
-                transform: (position, rotation),
+                transform: (position.into(), rotation),
+                scale: instance.scale,
             },
         });
     }
@@ -127,8 +137,9 @@ pub fn update_world_renderer(
                     );
                 } else {
                     let mesh = world_renderer
-                        .add_baked_mesh(
-                            format!("/baked/{}.mesh", extracted_instance.mesh_name),
+                        .load_gltf_mesh(
+                            format!("assets/meshes/{}/scene.gltf", extracted_instance.mesh_name),
+                            extracted_instance.scale,
                             AddMeshOptions::new(),
                         )
                         .expect(&format!(
@@ -153,8 +164,11 @@ pub fn update_world_renderer(
                     );
                 } else {
                     let mesh = world_renderer
-                        .add_baked_mesh(
-                            format!("/baked/{}.mesh", extracted_instance.mesh_name),
+                        // .add_baked_mesh(
+                        //     format!("/baked/{}.mesh", extracted_instance.mesh_name),
+                        .load_gltf_mesh(
+                            format!("assets/meshes/{}/scene.gltf", extracted_instance.mesh_name),
+                            extracted_instance.scale,
                             AddMeshOptions::new(),
                         )
                         .expect(&format!(

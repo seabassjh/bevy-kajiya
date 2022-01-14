@@ -86,9 +86,16 @@ pub enum MeshInstanceType {
     SceneInstanced(usize),
 }
 
-#[derive(Component, Clone, Default)]
+#[derive(Component, Clone)]
 pub struct KajiyaMeshInstance {
     pub mesh: KajiyaMesh,
+    pub scale: f32,
+}
+
+impl Default for KajiyaMeshInstance {
+    fn default() -> Self {
+        Self { mesh: Default::default(), scale: 1.0 }
+    }
 }
 
 #[derive(Component, Clone)]
@@ -96,6 +103,7 @@ pub struct MeshInstanceExtracted {
     pub instance_type: MeshInstanceType,
     pub mesh_name: String,
     pub transform: (Vec3, Quat),
+    pub scale: f32,
 }
 
 #[derive(Bundle, Clone)]
@@ -129,6 +137,7 @@ pub fn extract_meshes(
                         instance_type: MeshInstanceType::UserInstanced(entity),
                         mesh_name: mesh_name.to_string(),
                         transform: (pos, rot),
+                        scale: mesh_instance.scale,
                     },
                 });
             }
@@ -138,6 +147,7 @@ pub fn extract_meshes(
                         instance_type: MeshInstanceType::SceneInstanced(*mesh_indx),
                         mesh_name: mesh_name.to_string(),
                         transform: (pos, rot),
+                        scale: mesh_instance.scale,
                     },
                 });
             }
