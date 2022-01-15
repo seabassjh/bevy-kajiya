@@ -9,11 +9,14 @@ edition = "2021"
 members = [
     "bevy_kajiya_render",
     "bevy_kajiya_core",
+    "bevy_kajiya_egui",
 ]
 
 [dependencies]
 bevy_kajiya_core = { path = "bevy_kajiya_core" }
 bevy_kajiya_render = { path = "bevy_kajiya_render" }
+bevy_kajiya_egui = { path = "bevy_kajiya_egui" }
 
 [features]
 kajiya_egui = ["bevy_kajiya_core/kajiya_egui"]
+default = [ "kajiya_egui" ]
