@@ -13,16 +13,18 @@ pub use plugin::KajiyaRenderPlugin;
 const DEFAULT_SCENE_NAME: &str = "car";
 
 #[derive(Clone)]
-pub struct KajiyaSceneDescriptor {
+pub struct KajiyaDescriptor {
     pub scene_name: String,
     pub gi_volume_scale: f32,
+    pub temporal_upsampling: f32,
 }
 
-impl Default for KajiyaSceneDescriptor {
+impl Default for KajiyaDescriptor {
     fn default() -> Self {
         Self {
             scene_name: DEFAULT_SCENE_NAME.to_string(),
             gi_volume_scale: 1.0,
+            temporal_upsampling: 1.0,
         }
     }
 }

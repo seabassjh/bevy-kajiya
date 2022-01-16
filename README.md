@@ -46,10 +46,10 @@ Add these plugins:
 ```
 
 ## Scenes
-You specify the scene to be loaded on startup with the `KajiyaSceneDescriptor` resource inserted in `App::new()`.  The scene as specified by `"my-scene"` should be located in `assets/scenes/my-scene.ron`
+You specify the scene to be loaded on startup with the `KajiyaDescriptor` resource inserted in `App::new()`.  The scene as specified by `"my-scene"` should be located in `assets/scenes/my-scene.ron`
 
 ```
-    .insert_resource(KajiyaSceneDescriptor {
+    .insert_resource(KajiyaDescriptor {
         scene_name: "my_scene".to_string(),
         ..Default::default()
     })

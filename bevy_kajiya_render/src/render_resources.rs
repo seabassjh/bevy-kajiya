@@ -5,6 +5,8 @@ use kajiya::{
 };
 use std::sync::Mutex;
 
+use crate::KajiyaDescriptor;
+
 pub struct KajiyaRenderers {
     pub world_renderer: Mutex<WorldRenderer>,
     pub ui_renderer: Mutex<UiRenderer>,
@@ -56,13 +58,16 @@ impl RenderContext {
 impl WindowConfig {
     pub fn from(app: &mut App) -> Self {
         let world = app.world.cell();
+        
+        let temporal_upsampling = world
+            .get_resource::<KajiyaDescriptor>()
+            .map(|descriptor| (*descriptor).clone())
+            .unwrap_or_default().temporal_upsampling;
+
         let windows = world.get_resource_mut::<bevy::window::Windows>().unwrap();
         let window = windows.get_primary().unwrap();
 
         let raw_window_handle = unsafe { window.raw_window_handle().get_handle() };
-
-        // TODO: make configurable
-        let temporal_upsampling = 1.0;
 
         let render_extent = [
             (window.requested_width() as f32 / temporal_upsampling) as u32,

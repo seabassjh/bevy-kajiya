@@ -21,7 +21,7 @@ use crate::render_resources::{
     KajiyaRGRenderer, KajiyaRenderBackend, KajiyaRenderers, RenderContext, WindowConfig,
 };
 use crate::world_renderer::{setup_world_renderer, update_world_renderer};
-use crate::KajiyaSceneDescriptor;
+use crate::KajiyaDescriptor;
 use crate::{camera::extract_camera, mesh::extract_meshes};
 
 /// Contains the Bevy interface to the Kajiya renderer.
@@ -134,7 +134,7 @@ impl Plugin for KajiyaRenderPlugin {
 
         let scene_descriptor = app
             .world
-            .get_resource::<KajiyaSceneDescriptor>()
+            .get_resource::<KajiyaDescriptor>()
             .map(|descriptor| (*descriptor).clone())
             .unwrap_or_default();
 

@@ -15,7 +15,7 @@ use crate::{
         RenderInstances,
     },
     render_resources::{KajiyaRenderers, RenderContext},
-    KajiyaSceneDescriptor,
+    KajiyaDescriptor,
 };
 
 #[derive(serde::Deserialize)]
@@ -51,7 +51,7 @@ impl SunState {
 pub fn setup_world_renderer(
     mut commands: Commands,
     wr_res: NonSendMut<KajiyaRenderers>,
-    scene: Res<KajiyaSceneDescriptor>,
+    scene: Res<KajiyaDescriptor>,
     render_context: Res<RenderContext>,
 ) {
     let scene_file = format!("assets/scenes/{}.ron", scene.scene_name);
