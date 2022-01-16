@@ -127,13 +127,14 @@ pub fn update_world_renderer(
             let mesh_asset = GltfMeshAsset::from_src_path(mesh_src_path.clone());
             if mesh_assets.meshes_changed.contains(&mesh_asset) {
                 // This mesh instance has its mesh source file changed, re-instance mesh with updated source file
-
+                
                 world_renderer.remove_instance(render_instance.instance_handle);
                 
                 let mesh = load_mesh_from_gltf_src(&mut world_renderer, mesh_src_path, extracted_instance.scale);
                 render_instance.instance_handle = world_renderer.add_instance(mesh, Affine3A::from_rotation_translation(new_rot, new_pos));
-
+                
                 mesh_assets.meshes_changed.remove(&mesh_asset);
+                // println!("Found changed {:?}", mesh_assets.meshes_changed);
             } else {
                 // Otherwise, the normal case, update this mesh transform for its WorldRenderer instance
                 
@@ -173,6 +174,7 @@ pub fn update_world_renderer(
     };
     frame_desc.camera_matrices = extracted_camera.transform.through(&lens);
     frame_desc.sun_direction = extracted_camera.environment.sun_theta_phi.direction();
+
 }
 
 fn load_mesh_from_gltf_src(world_renderer: &mut WorldRenderer, gltf_src_path: String, scale: f32) -> MeshHandle {

@@ -120,7 +120,6 @@ pub fn extract_meshes(
     mut commands: Commands,
     query: Query<
         (Entity, &GlobalTransform, &KajiyaMeshInstance),
-        (Changed<GlobalTransform>, With<KajiyaMeshInstance>),
     >,
     mut render_world: ResMut<RenderWorld>,
     mut asset_server: ResMut<AssetServer>,

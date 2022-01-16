@@ -32,7 +32,7 @@ impl GltfMeshAsset {
 #[derive(Default)]
 pub struct MeshAssetsState {
     pub meshes_changed: HashSet<GltfMeshAsset>,
-    pub assets_ready: bool,
+    pub assets_ready: HashSet<Handle<GltfMeshAsset>>,
 }
 
 #[derive(Default)]
@@ -80,17 +80,14 @@ pub fn watch_asset(
 
     for ev in ev_asset.iter() {
         match ev {
-            AssetEvent::Created { handle } => {
-                if !state.assets_ready {
-                    state.assets_ready = true;
-                }
-            }
+            AssetEvent::Created { handle } |
             AssetEvent::Modified { handle } => {
                 if let Some(custom_asset) = custom_assets.get(handle) {
-                    if state.assets_ready {
-                        info!("Custom asset modified {}", custom_asset.mesh_src_path);
+                    if state.assets_ready.contains(handle) {
                         state.meshes_changed.insert(custom_asset.to_owned());
+                        println!("Custom asset modified {:?}", state.meshes_changed);
                     }
+                    state.assets_ready.insert(handle.to_owned());
                 }
             }
             AssetEvent::Removed { handle } => {
