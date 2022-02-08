@@ -71,7 +71,7 @@ pub struct KajiyaMeshInstanceBundle {
     pub global_transform: GlobalTransform,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum KajiyaMesh {
     Name(String),
     None,
