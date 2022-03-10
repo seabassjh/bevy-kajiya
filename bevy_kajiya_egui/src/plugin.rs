@@ -96,8 +96,11 @@ pub fn prepare_and_extract_ctx(mut render_world: ResMut<RenderWorld>, mut egui: 
         .get_resource_mut::<EguiRenderResources>()
         .unwrap();
 
+    // Update delta time from render world
+    egui.state.last_dt = egui_render_res.last_dt;
+
     // Prepare context's frame so that the render world render system can finish frame
-    EguiBackend::prepare_context_frame(&mut egui.state, egui_render_res.last_dt);
+    EguiBackend::prepare_context_frame(&mut egui.state);
 
     // Extract prepared context from app world for use in render world
     egui_render_res.egui_ctx = Some(egui.state.egui_context.clone());
