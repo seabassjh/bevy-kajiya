@@ -171,98 +171,94 @@ impl Plugin for KajiyaRenderPlugin {
         //     schedule.add_stage(KajiyaRenderStage::Setup, SystemStage::parallel())
         // });
 
-        app.add_sub_app(
-            KajiyaRenderApp,
-            render_app,
-            move |app_world, render_app| {
+        app.add_sub_app(KajiyaRenderApp, render_app, move |app_world, render_app| {
+            #[cfg(feature = "trace")]
+            let render_span = bevy_utils::tracing::info_span!("renderer subapp");
+            #[cfg(feature = "trace")]
+            let _render_guard = render_span.enter();
+            {
                 #[cfg(feature = "trace")]
-                let render_span = bevy_utils::tracing::info_span!("renderer subapp");
+                let stage_span =
+                    bevy_utils::tracing::info_span!("stage", name = "reserve_and_flush");
                 #[cfg(feature = "trace")]
-                let _render_guard = render_span.enter();
-                {
-                    #[cfg(feature = "trace")]
-                    let stage_span =
-                        bevy_utils::tracing::info_span!("stage", name = "reserve_and_flush");
-                    #[cfg(feature = "trace")]
-                    let _stage_guard = stage_span.enter();
+                let _stage_guard = stage_span.enter();
 
-                    // reserve all existing app entities for use in render_app
-                    // they can only be spawned using `get_or_spawn()`
-                    let meta_len = app_world.entities().meta.len();
-                    render_app
-                        .world
-                        .entities()
-                        .reserve_entities(meta_len as u32);
+                // reserve all existing app entities for use in render_app
+                // they can only be spawned using `get_or_spawn()`
+                let meta_len = app_world.entities().meta.len();
+                render_app
+                    .world
+                    .entities()
+                    .reserve_entities(meta_len as u32);
 
-                    // flushing as "invalid" ensures that app world entities aren't added as "empty archetype" entities by default
-                    // these entities cannot be accessed without spawning directly onto them
-                    // this _only_ works as expected because clear_entities() is called at the end of every frame.
-                    render_app.world.entities_mut().flush_as_invalid();
-                }
+                // flushing as "invalid" ensures that app world entities aren't added as "empty archetype" entities by default
+                // these entities cannot be accessed without spawning directly onto them
+                // this _only_ works as expected because clear_entities() is called at the end of every frame.
+                render_app.world.entities_mut().flush_as_invalid();
+            }
 
-                {
-                    let setup = render_app
-                        .schedule
-                        .get_stage_mut::<SystemStage>(&KajiyaRenderStage::Setup)
-                        .unwrap();
-                    setup.run(&mut render_app.world);
-                }
+            {
+                let setup = render_app
+                    .schedule
+                    .get_stage_mut::<SystemStage>(&KajiyaRenderStage::Setup)
+                    .unwrap();
+                setup.run(&mut render_app.world);
+            }
 
-                {
-                    #[cfg(feature = "trace")]
-                    let stage_span = bevy_utils::tracing::info_span!("stage", name = "extract");
-                    #[cfg(feature = "trace")]
-                    let _stage_guard = stage_span.enter();
+            {
+                #[cfg(feature = "trace")]
+                let stage_span = bevy_utils::tracing::info_span!("stage", name = "extract");
+                #[cfg(feature = "trace")]
+                let _stage_guard = stage_span.enter();
 
-                    // extract
-                    extract(app_world, render_app);
-                }
+                // extract
+                extract(app_world, render_app);
+            }
 
-                {
-                    #[cfg(feature = "trace")]
-                    let stage_span = bevy_utils::tracing::info_span!("stage", name = "prepare");
-                    #[cfg(feature = "trace")]
-                    let _stage_guard = stage_span.enter();
+            {
+                #[cfg(feature = "trace")]
+                let stage_span = bevy_utils::tracing::info_span!("stage", name = "prepare");
+                #[cfg(feature = "trace")]
+                let _stage_guard = stage_span.enter();
 
-                    // prepare
-                    let prepare = render_app
-                        .schedule
-                        .get_stage_mut::<SystemStage>(&KajiyaRenderStage::Prepare)
-                        .unwrap();
-                    prepare.run(&mut render_app.world);
-                }
+                // prepare
+                let prepare = render_app
+                    .schedule
+                    .get_stage_mut::<SystemStage>(&KajiyaRenderStage::Prepare)
+                    .unwrap();
+                prepare.run(&mut render_app.world);
+            }
 
-                {
-                    #[cfg(feature = "trace")]
-                    let stage_span = bevy_utils::tracing::info_span!("stage", name = "render");
-                    #[cfg(feature = "trace")]
-                    let _stage_guard = stage_span.enter();
+            {
+                #[cfg(feature = "trace")]
+                let stage_span = bevy_utils::tracing::info_span!("stage", name = "render");
+                #[cfg(feature = "trace")]
+                let _stage_guard = stage_span.enter();
 
-                    // render
-                    let render = render_app
-                        .schedule
-                        .get_stage_mut::<SystemStage>(&KajiyaRenderStage::Render)
-                        .unwrap();
-                    render.run(&mut render_app.world);
-                }
+                // render
+                let render = render_app
+                    .schedule
+                    .get_stage_mut::<SystemStage>(&KajiyaRenderStage::Render)
+                    .unwrap();
+                render.run(&mut render_app.world);
+            }
 
-                {
-                    #[cfg(feature = "trace")]
-                    let stage_span = bevy_utils::tracing::info_span!("stage", name = "cleanup");
-                    #[cfg(feature = "trace")]
-                    let _stage_guard = stage_span.enter();
+            {
+                #[cfg(feature = "trace")]
+                let stage_span = bevy_utils::tracing::info_span!("stage", name = "cleanup");
+                #[cfg(feature = "trace")]
+                let _stage_guard = stage_span.enter();
 
-                    // cleanup
-                    let cleanup = render_app
-                        .schedule
-                        .get_stage_mut::<SystemStage>(&KajiyaRenderStage::Cleanup)
-                        .unwrap();
-                    cleanup.run(&mut render_app.world);
+                // cleanup
+                let cleanup = render_app
+                    .schedule
+                    .get_stage_mut::<SystemStage>(&KajiyaRenderStage::Cleanup)
+                    .unwrap();
+                cleanup.run(&mut render_app.world);
 
-                    render_app.world.clear_entities();
-                }
-            },
-        );
+                render_app.world.clear_entities();
+            }
+        });
 
         // app.add_plugin(WindowKajiyaRenderPlugin)
         //     .add_plugin(CameraPlugin)
