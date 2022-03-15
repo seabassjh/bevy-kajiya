@@ -10,4 +10,4 @@ bevy = { version = "0.6.0", default-features = false, features = ["bevy_winit"] 
 kajiya = { path = "../../kajiya/crates/lib/kajiya" }
 bevy_kajiya_render = { path = "../bevy_kajiya_render" }
 kajiya-egui-backend = { path = "../../kajiya/crates/lib/kajiya-egui", package = "kajiya-egui" }
-egui = "0.16.1"
+egui = "0.17.0"

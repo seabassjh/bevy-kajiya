@@ -3,7 +3,7 @@ use bevy::{
     input::mouse::{MouseScrollUnit, MouseWheel},
     prelude::*,
 };
-use egui::{self, Color32, CtxRef, Modifiers, RawInput, Stroke};
+use egui::{self, Color32, Modifiers, RawInput, Stroke};
 use kajiya_egui_backend::{EguiBackend, EguiState};
 
 use bevy_kajiya_render::{
@@ -16,13 +16,13 @@ pub struct Egui {
 }
 
 impl Egui {
-    pub fn ctx(&self) -> &egui::CtxRef {
+    pub fn ctx(&self) -> &egui::Context {
         &self.state.egui_context
     }
 }
 
 pub struct EguiRenderResources {
-    pub egui_ctx: Option<CtxRef>,
+    pub egui_ctx: Option<egui::Context>,
     pub window_properties: WindowProperties,
     pub last_dt: f64,
 }
@@ -40,7 +40,7 @@ impl Plugin for KajiyaEguiPlugin {
             .unwrap();
         let window_properties = render_app.world.get_resource::<WindowProperties>().unwrap();
 
-        let mut egui = CtxRef::default();
+        let mut egui = egui::Context::default();
         egui.set_fonts(egui::FontDefinitions::default());
         egui.set_style(egui::Style::default());
         let mut visuals = egui::style::Visuals::dark();
@@ -52,7 +52,8 @@ impl Plugin for KajiyaEguiPlugin {
 
         let mut egui_backend = kajiya_egui_backend::EguiBackend::new(
             rg_renderer.rg_renderer.device().clone(),
-            window_properties.get_size_scale(),
+            window_properties.get_size(),
+            window_properties.get_scale(),
             &mut egui,
         );
 
@@ -68,7 +69,8 @@ impl Plugin for KajiyaEguiPlugin {
             state: EguiState {
                 egui_context: egui,
                 raw_input: egui_backend.raw_input.clone(),
-                window_size_scale: window_properties.get_size_scale(),
+                window_size: window_properties.get_size(),
+                window_scale_factor: window_properties.get_scale(),
                 last_mouse_pos: None,
                 last_dt: 0.0,
             },
@@ -100,7 +102,7 @@ pub fn prepare_and_extract_ctx(mut render_world: ResMut<RenderWorld>, mut egui: 
     egui.state.last_dt = egui_render_res.last_dt;
 
     // Prepare context's frame so that the render world render system can finish frame
-    EguiBackend::prepare_context_frame(&mut egui.state);
+    EguiBackend::prepare_frame(&mut egui.state);
 
     // Extract prepared context from app world for use in render world
     egui_render_res.egui_ctx = Some(egui.state.egui_context.clone());
@@ -122,8 +124,8 @@ pub fn extract_mouse_input(
     }
 
     if let Some(cursor_moved) = ev_cursor.iter().next_back() {
-        let window_height = egui.state.window_size_scale.1 as f32;
-        let scale_factor = egui.state.window_size_scale.2 as f32;
+        let window_height = egui.state.window_size.1 as f32;
+        let scale_factor = egui.state.window_scale_factor as f32;
         let mut mouse_position: (f32, f32) = (cursor_moved.position).into();
         mouse_position.1 = window_height / scale_factor - mouse_position.1;
 
