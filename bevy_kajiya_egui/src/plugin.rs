@@ -3,30 +3,26 @@ use bevy::{
     input::mouse::{MouseScrollUnit, MouseWheel},
     prelude::*,
 };
-use egui::{self, CtxRef, Color32, Modifiers, RawInput, Stroke};
-use kajiya_egui_backend::EguiBackend;
+use egui::{self, Color32, Modifiers, RawInput, Stroke};
+use kajiya_egui_backend::{EguiBackend, EguiState};
 
 use bevy_kajiya_render::{
-    plugin::{KajiyaRenderStage, KajiyaRenderApp, RenderWorld},
+    plugin::{KajiyaRenderApp, KajiyaRenderStage, RenderWorld},
     render_resources::{KajiyaRGRenderer, KajiyaRenderers, RenderContext, WindowProperties},
 };
 
-pub struct EguiContext {
-    pub egui: CtxRef,
-    pub window_properties: WindowProperties,
-    pub mouse_position: Option<(f32, f32)>,
-    raw_input: Option<RawInput>,
+pub struct Egui {
+    state: EguiState,
 }
 
-impl EguiContext {
-    pub fn ctx(&self) -> &egui::CtxRef {
-        &self.egui
+impl Egui {
+    pub fn ctx(&self) -> &egui::Context {
+        &self.state.egui_context
     }
 }
 
-pub struct EguiRenderContext {
-    pub egui_ctx: Option<CtxRef>,
-    // pub raw_input: Option<RawInput>,
+pub struct EguiRenderResources {
+    pub egui_ctx: Option<egui::Context>,
     pub window_properties: WindowProperties,
     pub last_dt: f64,
 }
@@ -44,7 +40,7 @@ impl Plugin for KajiyaEguiPlugin {
             .unwrap();
         let window_properties = render_app.world.get_resource::<WindowProperties>().unwrap();
 
-        let mut egui = CtxRef::default();
+        let mut egui = egui::Context::default();
         egui.set_fonts(egui::FontDefinitions::default());
         egui.set_style(egui::Style::default());
         let mut visuals = egui::style::Visuals::dark();
@@ -56,30 +52,34 @@ impl Plugin for KajiyaEguiPlugin {
 
         let mut egui_backend = kajiya_egui_backend::EguiBackend::new(
             rg_renderer.rg_renderer.device().clone(),
-            window_properties.get_size_scale(),
+            window_properties.get_size(),
+            window_properties.get_scale(),
             &mut egui,
         );
 
-        let egui_render_context = EguiRenderContext {
+        let egui_render_res = EguiRenderResources {
             egui_ctx: None,
-            // raw_input: Some(egui_backend.raw_input.clone()),
             window_properties: *window_properties,
             last_dt: 0.0,
         };
 
         egui_backend.create_graphics_resources([window_properties.0, window_properties.1]);
 
-        let egui_context = EguiContext {
-            egui,
-            raw_input: Some(egui_backend.raw_input.clone()),
-            window_properties: *window_properties,
-            mouse_position: None,
+        let egui = Egui {
+            state: EguiState {
+                egui_context: egui,
+                raw_input: egui_backend.raw_input.clone(),
+                window_size: window_properties.get_size(),
+                window_scale_factor: window_properties.get_scale(),
+                last_mouse_pos: None,
+                last_dt: 0.0,
+            },
         };
 
         render_app
             .add_system_to_stage(
                 KajiyaRenderStage::Extract,
-                extract_context.exclusive_system().at_end(),
+                prepare_and_extract_ctx.exclusive_system().at_end(),
             )
             .add_system_to_stage(
                 KajiyaRenderStage::Extract,
@@ -87,103 +87,102 @@ impl Plugin for KajiyaEguiPlugin {
             )
             .add_system_to_stage(KajiyaRenderStage::Prepare, prepare_ui_renderer)
             .insert_non_send_resource(egui_backend)
-            .insert_resource(egui_render_context);
+            .insert_resource(egui_render_res);
 
-        app.insert_resource(egui_context);
+        app.insert_resource(egui);
     }
 }
 
-pub fn extract_context(mut render_world: ResMut<RenderWorld>, mut egui_ctx: ResMut<EguiContext>) {
-    let mut render_ctx = render_world
-        .get_resource_mut::<EguiRenderContext>()
+pub fn prepare_and_extract_ctx(mut render_world: ResMut<RenderWorld>, mut egui: ResMut<Egui>) {
+    let mut egui_render_res = render_world
+        .get_resource_mut::<EguiRenderResources>()
         .unwrap();
 
-    let mut raw_input = egui_ctx.raw_input.take().unwrap();
+    // Update delta time from render world
+    egui.state.last_dt = egui_render_res.last_dt;
 
-    // update time
-    if let Some(time) = raw_input.time {
-        raw_input.time = Some(time + render_ctx.last_dt);
-    } else {
-        raw_input.time = Some(0.0);
-    }
+    // Prepare context's frame so that the render world render system can finish frame
+    EguiBackend::prepare_frame(&mut egui.state);
 
-    egui_ctx.egui.begin_frame(raw_input.clone());
-
-    raw_input.events.clear();
-    egui_ctx.raw_input = Some(raw_input);
-    render_ctx.egui_ctx = Some(egui_ctx.egui.clone());
+    // Extract prepared context from app world for use in render world
+    egui_render_res.egui_ctx = Some(egui.state.egui_context.clone());
 }
 
 pub fn extract_mouse_input(
-    mut egui_ctx: ResMut<EguiContext>,
+    mut egui: ResMut<Egui>,
     mut mouse_wheel_events: EventReader<MouseWheel>,
     mut ev_cursor: EventReader<CursorMoved>,
     buttons: Res<Input<MouseButton>>,
 ) {
-    let mut raw_input = egui_ctx.raw_input.take().unwrap();
-
     for event in mouse_wheel_events.iter() {
         let mut delta = egui::vec2(event.x, event.y);
         if let MouseScrollUnit::Line = event.unit {
             delta *= 24.0;
         }
 
-        raw_input.events.push(egui::Event::Scroll(delta));
+        egui.state.raw_input.events.push(egui::Event::Scroll(delta));
     }
 
     if let Some(cursor_moved) = ev_cursor.iter().next_back() {
-        let window_height = egui_ctx.window_properties.1 as f32;
-        let scale_factor = egui_ctx.window_properties.2 as f32;
+        let window_height = egui.state.window_size.1 as f32;
+        let scale_factor = egui.state.window_scale_factor as f32;
         let mut mouse_position: (f32, f32) = (cursor_moved.position).into();
         mouse_position.1 = window_height / scale_factor - mouse_position.1;
 
-        egui_ctx.mouse_position = Some(mouse_position);
+        egui.state.last_mouse_pos = Some(mouse_position);
 
-        raw_input.events.push(egui::Event::PointerMoved(egui::pos2(
-            mouse_position.0,
-            mouse_position.1,
-        )));
+        egui.state
+            .raw_input
+            .events
+            .push(egui::Event::PointerMoved(egui::pos2(
+                mouse_position.0,
+                mouse_position.1,
+            )));
     }
 
-    if let Some(pos) = egui_ctx.mouse_position {
+    if let Some(pos) = egui.state.last_mouse_pos {
         let pos = egui::pos2(pos.0, pos.1);
 
         if buttons.just_pressed(MouseButton::Left) {
-            raw_input.events.push(egui::Event::PointerButton {
-                pos,
-                button: egui::PointerButton::Primary,
-                pressed: true,
-                modifiers: Modifiers::default(),
-            });
+            egui.state
+                .raw_input
+                .events
+                .push(egui::Event::PointerButton {
+                    pos,
+                    button: egui::PointerButton::Primary,
+                    pressed: true,
+                    modifiers: Modifiers::default(),
+                });
         }
         if buttons.just_released(MouseButton::Left) {
-            raw_input.events.push(egui::Event::PointerButton {
-                pos,
-                button: egui::PointerButton::Primary,
-                pressed: false,
-                modifiers: Modifiers::default(),
-            });
+            egui.state
+                .raw_input
+                .events
+                .push(egui::Event::PointerButton {
+                    pos,
+                    button: egui::PointerButton::Primary,
+                    pressed: false,
+                    modifiers: Modifiers::default(),
+                });
         }
     }
-
-    egui_ctx.raw_input = Some(raw_input);
 }
 
 pub fn prepare_ui_renderer(
     mut egui_backend: NonSendMut<EguiBackend>,
-    mut egui_render_ctx: ResMut<EguiRenderContext>,
+    mut egui_render_res: ResMut<EguiRenderResources>,
     render_ctx: Res<RenderContext>,
     renderers: NonSendMut<KajiyaRenderers>,
 ) {
-    let mut egui_ctx = egui_render_ctx.egui_ctx.take().unwrap();
+    let mut egui_ctx = egui_render_res.egui_ctx.take().unwrap();
     let ui_renderer = &mut *renderers.ui_renderer.lock().unwrap();
 
     egui_backend.finish_frame(
         &mut egui_ctx,
-        egui_render_ctx.window_properties.get_size(),
+        egui_render_res.window_properties.get_size(),
         ui_renderer,
     );
 
-    egui_render_ctx.egui_ctx = Some(egui_ctx);
-    egui_render_ctx.last_dt = render_ctx.delta_seconds as f64;
+    egui_render_res.egui_ctx = Some(egui_ctx);
+    egui_render_res.last_dt = render_ctx.delta_seconds as f64;
 }

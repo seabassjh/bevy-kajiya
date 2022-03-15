@@ -31,6 +31,10 @@ impl WindowProperties {
     pub fn get_size(self) -> (u32, u32) {
         (self.0, self.1)
     }
+
+    pub fn get_scale(self) -> f64 {
+        self.2
+    }
 }
 pub struct WindowConfig {
     pub raw_window_handle: HasRawWindowHandleWrapper,
