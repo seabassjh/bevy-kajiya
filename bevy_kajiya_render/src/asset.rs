@@ -65,7 +65,7 @@ pub fn setup_assets(asset_server: ResMut<AssetServer>) {
 }
 
 pub fn register_unique_gltf_asset(asset_server: &mut AssetServer, render_instances: &RenderInstances, name: &String) {
-    if render_instances.unique_meshes.get(name).is_none() {
+    if render_instances.unique_loaded_meshes.get(name).is_none() {
         let _handle: Handle<GltfMeshAsset>;
         _handle = asset_server.load(&format!("meshes/{}/scene.gltf", name));
     }

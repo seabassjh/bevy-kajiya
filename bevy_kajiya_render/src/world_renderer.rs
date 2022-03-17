@@ -66,7 +66,7 @@ pub fn setup_world_renderer(
 
     let mut render_instances = RenderInstances {
         user_instances: HashMap::default(),
-        unique_meshes: HashMap::default(),
+        unique_loaded_meshes: HashMap::default(),
         scene_mesh_instance_queue: Vec::default(),
     };
 
@@ -147,7 +147,7 @@ pub fn update_world_renderer(
             // No render instance exists for this mesh instance, add a new and unique WorldRenderer instance
 
             // Instance a mesh from gltf only if we haven't done so for this mesh already
-            let mesh = if let Some(mesh_handle) = render_instances.unique_meshes.get(&extracted_instance.mesh_name) {
+            let mesh = if let Some(mesh_handle) = render_instances.unique_loaded_meshes.get(&extracted_instance.mesh_name) {
                 *mesh_handle
             } else {
                 load_mesh_from_gltf_src(&mut world_renderer, mesh_src_path, extracted_instance.scale)
@@ -162,7 +162,7 @@ pub fn update_world_renderer(
                 },
             );
             
-            render_instances.unique_meshes.insert(extracted_instance.mesh_name.clone(), mesh);
+            render_instances.unique_loaded_meshes.insert(extracted_instance.mesh_name.clone(), mesh);
         }
     }
 

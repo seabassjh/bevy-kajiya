@@ -60,7 +60,7 @@ pub struct RenderInstance {
 
 pub struct RenderInstances {
     pub user_instances: HashMap<Entity, RenderInstance>,
-    pub unique_meshes: HashMap<String, MeshHandle>,
+    pub unique_loaded_meshes: HashMap<String, MeshHandle>,
     pub scene_mesh_instance_queue: Vec<(KajiyaMeshInstance, Transform)>,
 }
 
