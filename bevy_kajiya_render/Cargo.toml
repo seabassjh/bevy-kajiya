@@ -6,7 +6,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-bevy = { version = "0.6.0", default-features = false, features = ["bevy_winit", "filesystem_watcher"] }
+bevy = { version = "0.6.0", default-features = false, features = ["bevy_winit", "filesystem_watcher", "x11"] }
 kajiya = { path = "../../kajiya/crates/lib/kajiya" }
 
 anyhow = "1.0"
@@ -15,6 +15,7 @@ log = "0.4"
 ron = "0.6.2"
 serde = { version = "1.0", features = ["derive"] }
 structopt = "0.3"
+futures-lite = "1.11.3"
 
 winit = "0.25"
 glam = { version = "0.18", features = ["serde"] }

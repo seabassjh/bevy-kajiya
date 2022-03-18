@@ -85,7 +85,7 @@ pub fn watch_asset(
                 if let Some(custom_asset) = custom_assets.get(handle) {
                     if state.assets_ready.contains(handle) {
                         state.meshes_changed.insert(custom_asset.to_owned());
-                        println!("Custom asset modified {:?}", state.meshes_changed);
+                        // println!("Custom asset modified {:?}", state.meshes_changed);
                     }
                     state.assets_ready.insert(handle.to_owned());
                 }

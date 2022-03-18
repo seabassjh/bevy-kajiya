@@ -101,7 +101,7 @@ impl Default for KajiyaMeshInstance {
     }
 }
 
-#[derive(Component, Clone)]
+#[derive(Component, Clone, Debug)]
 pub struct MeshInstanceExtracted {
     pub instance_entity: Entity,
     pub mesh_name: String,

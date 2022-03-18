@@ -16,7 +16,7 @@ use std::ops::{Deref, DerefMut};
 use std::sync::Mutex;
 use turbosloth::LazyCache;
 
-use crate::frame::render_frame;
+use crate::{frame::render_frame, world_renderer::{handle_mesh_commands, WorldRendererCommand, LoadGltfTask}};
 use crate::render_resources::{
     KajiyaRGRenderer, KajiyaRenderBackend, KajiyaRenderers, RenderContext, WindowConfig,
 };
@@ -138,7 +138,15 @@ impl Plugin for KajiyaRenderPlugin {
             .map(|descriptor| (*descriptor).clone())
             .unwrap_or_default();
 
+        // Setup the default bevy task pools for render app
+        app.world
+            .get_resource::<DefaultTaskPoolOptions>()
+            .cloned()
+            .unwrap_or_default()
+            .create_default_pools(&mut render_app.world);
+
         app.init_resource::<ScratchRenderWorld>();
+
         app
             .add_asset::<crate::asset::GltfMeshAsset>()
             .init_asset_loader::<crate::asset::GltfMeshAssetLoader>()
@@ -160,11 +168,14 @@ impl Plugin for KajiyaRenderPlugin {
             )
             .add_stage(
                 KajiyaRenderStage::Prepare,
-                SystemStage::single(update_world_renderer),
+                SystemStage::single(update_world_renderer)
+                    .with_system(handle_mesh_commands)
             )
             .add_stage(KajiyaRenderStage::Render, SystemStage::single(render_frame))
             .add_stage(KajiyaRenderStage::Cleanup, SystemStage::parallel())
             .init_resource::<crate::asset::MeshAssetsState>()
+            .init_resource::<Vec<WorldRendererCommand>>()
+            .init_resource::<Vec<LoadGltfTask>>()
             .insert_non_send_resource(kajiya_renderers)
             .insert_resource(render_backend)
             .insert_non_send_resource(rg_renderer)
