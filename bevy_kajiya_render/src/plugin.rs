@@ -16,11 +16,11 @@ use std::ops::{Deref, DerefMut};
 use std::sync::Mutex;
 use turbosloth::LazyCache;
 
-use crate::frame::render_frame;
+use crate::{frame::render_frame, render_instances::{process_renderer_instances, process_renderer_meshes, LoadedMeshesMap, RenderInstancesMap}, world_renderer::{WRCommandQueue, process_world_renderer_cmds, update_world_renderer_view}};
 use crate::render_resources::{
     KajiyaRGRenderer, KajiyaRenderBackend, KajiyaRenderers, RenderContext, WindowConfig,
 };
-use crate::world_renderer::{setup_world_renderer, update_world_renderer};
+use crate::world_renderer::{setup_world_renderer};
 use crate::KajiyaDescriptor;
 use crate::{camera::extract_camera, mesh::extract_meshes};
 
@@ -36,6 +36,9 @@ pub enum KajiyaRenderStage {
     /// This step should be kept as short as possible to increase the "pipelining potential" for
     /// running the next frame while rendering the current frame.
     Extract,
+
+    /// Process and condition extracted data for Prepare
+    Process,
 
     /// Prepare render resources from the extracted data for the GPU.
     Prepare,
@@ -138,11 +141,18 @@ impl Plugin for KajiyaRenderPlugin {
             .map(|descriptor| (*descriptor).clone())
             .unwrap_or_default();
 
+        // Setup the default bevy task pools for render app
+        app.world
+            .get_resource::<DefaultTaskPoolOptions>()
+            .cloned()
+            .unwrap_or_default()
+            .create_default_pools(&mut render_app.world);
+
         app.init_resource::<ScratchRenderWorld>();
-        app
-            .add_asset::<crate::asset::GltfMeshAsset>()
-            .init_asset_loader::<crate::asset::GltfMeshAssetLoader>()
-            .add_startup_system(crate::asset::setup_assets);
+        // app
+        //     .add_asset::<crate::asset::GltfMeshAsset>()
+        //     .init_asset_loader::<crate::asset::GltfMeshAssetLoader>()
+        //     .add_startup_system(crate::asset::setup_assets);
 
         render_app
             .add_stage(
@@ -156,15 +166,25 @@ impl Plugin for KajiyaRenderPlugin {
                 SystemStage::parallel()
                     .with_system(extract_camera)
                     .with_system(extract_meshes)
-                    .with_system(crate::asset::watch_asset),
+                    // .with_system(crate::asset::watch_asset),
+            )
+            .add_stage(
+                KajiyaRenderStage::Process,
+                SystemStage::parallel()
+                    .with_system(update_world_renderer_view)
+                    .with_system(process_renderer_instances)
+                    .with_system(process_renderer_meshes)
             )
             .add_stage(
                 KajiyaRenderStage::Prepare,
-                SystemStage::single(update_world_renderer),
+                SystemStage::single(process_world_renderer_cmds),
             )
             .add_stage(KajiyaRenderStage::Render, SystemStage::single(render_frame))
             .add_stage(KajiyaRenderStage::Cleanup, SystemStage::parallel())
-            .init_resource::<crate::asset::MeshAssetsState>()
+            // .init_resource::<crate::asset::MeshAssetsState>()
+            .init_resource::<WRCommandQueue>()
+            .init_resource::<RenderInstancesMap>()
+            .init_resource::<LoadedMeshesMap>()
             .insert_non_send_resource(kajiya_renderers)
             .insert_resource(render_backend)
             .insert_non_send_resource(rg_renderer)
@@ -219,6 +239,20 @@ impl Plugin for KajiyaRenderPlugin {
 
                 // extract
                 extract(app_world, render_app);
+            }
+
+            {
+                #[cfg(feature = "trace")]
+                let stage_span = bevy_utils::tracing::info_span!("stage", name = "process");
+                #[cfg(feature = "trace")]
+                let _stage_guard = stage_span.enter();
+
+                // process
+                let process = render_app
+                    .schedule
+                    .get_stage_mut::<SystemStage>(&KajiyaRenderStage::Process)
+                    .unwrap();
+                process.run(&mut render_app.world);
             }
 
             {

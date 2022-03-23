@@ -101,12 +101,18 @@ impl Default for KajiyaMeshInstance {
     }
 }
 
+#[derive(Component, Clone, Copy)]
+pub struct MeshTransform {
+    pub position: Vec3,
+    pub rotation: Quat,
+    pub scale: f32,
+}
+
 #[derive(Component, Clone)]
 pub struct MeshInstanceExtracted {
     pub instance_entity: Entity,
     pub mesh_name: String,
-    pub transform: (Vec3, Quat),
-    pub scale: f32,
+    pub transform: MeshTransform,
 }
 
 #[derive(Bundle, Clone)]
@@ -135,7 +141,7 @@ pub fn extract_meshes(
             KajiyaMesh::None => return,
         };
 
-        register_unique_gltf_asset(&mut asset_server, &render_instances, &mesh_name);
+        // register_unique_gltf_asset(&mut asset_server, &render_instances, &mesh_name);
 
         let entity = commands.spawn_bundle(KajiyaMeshInstanceBundle {
             mesh_instance: KajiyaMeshInstance { 
@@ -148,14 +154,13 @@ pub fn extract_meshes(
 
         let pos = instance_transform.translation;
         let rot = instance_transform.rotation;
-        let transform = (Vec3::new(pos.x, pos.y, pos.z), Quat::from_xyzw(rot.x, rot.y, rot.z, rot.w));
+        let transform = MeshTransform { position: Vec3::new(pos.x, pos.y, pos.z), rotation: Quat::from_xyzw(rot.x, rot.y, rot.z, rot.w), scale: instance.scale };
 
         mesh_instances.push(MeshInstanceExtractedBundle {
             mesh_instance: MeshInstanceExtracted {
                 instance_entity: entity,
                 mesh_name,
                 transform,
-                scale: instance.scale,
             },
         });
     }
@@ -163,18 +168,17 @@ pub fn extract_meshes(
     for (entity, transform, mesh_instance) in query.iter() {
         let pos = transform.translation;
         let rot = transform.rotation;
-        let transform = (Vec3::new(pos.x, pos.y, pos.z), Quat::from_xyzw(rot.x, rot.y, rot.z, rot.w));
+        let transform = MeshTransform { position: Vec3::new(pos.x, pos.y, pos.z), rotation: Quat::from_xyzw(rot.x, rot.y, rot.z, rot.w), scale: mesh_instance.scale };
 
         match &mesh_instance.mesh {
             KajiyaMesh::Name(mesh_name) => {
-                register_unique_gltf_asset(&mut asset_server, &render_instances, &mesh_name);
+                // register_unique_gltf_asset(&mut asset_server, &render_instances, &mesh_name);
 
                 mesh_instances.push(MeshInstanceExtractedBundle {
                     mesh_instance: MeshInstanceExtracted {
                         instance_entity: entity,
                         mesh_name: mesh_name.to_string(),
                         transform,
-                        scale: mesh_instance.scale,
                     },
                 });
             }

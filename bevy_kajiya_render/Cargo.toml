@@ -15,6 +15,7 @@ log = "0.4"
 ron = "0.6.2"
 serde = { version = "1.0", features = ["derive"] }
 structopt = "0.3"
+futures-lite = "1.11.3"
 
 winit = "0.25"
 glam = { version = "0.18", features = ["serde"] }

@@ -5,17 +5,17 @@ use glam::{Quat, Vec3, Affine3A};
 use kajiya::{
     camera::{CameraLens, LookThroughCamera},
     frame_desc::WorldFrameDesc,
-    world_renderer::{AddMeshOptions, MeshHandle, WorldRenderer},
+    world_renderer::{AddMeshOptions, MeshHandle, WorldRenderer, InstanceHandle}, asset::mesh::LoadGltfScene,
 };
 
 use crate::{
     camera::{ExtractedCamera, KajiyaCamera},
     mesh::{
         MeshInstanceExtracted, MeshInstanceExtractedBundle, MeshInstanceType, RenderInstance,
-        RenderInstances,
+        RenderInstances, MeshTransform,
     },
     render_resources::{KajiyaRenderers, RenderContext},
-    KajiyaDescriptor, KajiyaMeshInstanceBundle, KajiyaMeshInstance, KajiyaMesh, asset::{MeshAssetsState, GltfMeshAsset},
+    KajiyaDescriptor, KajiyaMeshInstanceBundle, KajiyaMeshInstance, KajiyaMesh, asset::{MeshAssetsState, GltfMeshAsset}, render_instances::{LoadedMeshesMap, RenderMesh, RenderInstancesMap, WRInstance},
 };
 
 #[derive(serde::Deserialize)]
@@ -107,64 +107,10 @@ pub fn setup_world_renderer(
     commands.insert_resource(extracted_camera);
 }
 
-pub fn update_world_renderer(
-    wr_res: NonSendMut<KajiyaRenderers>,
+pub fn update_world_renderer_view(
     mut frame_desc: ResMut<WorldFrameDesc>,
     extracted_camera: Res<ExtractedCamera>,
-    mut render_instances: ResMut<RenderInstances>,
-    query_extracted_instances: Query<&MeshInstanceExtracted>,
-    mut mesh_assets: ResMut<MeshAssetsState>,
 ) {
-    let mut world_renderer = wr_res.world_renderer.lock().unwrap();
-
-    for extracted_instance in query_extracted_instances.iter() {
-        let mesh_src_path = format!("assets/meshes/{}/scene.gltf", extracted_instance.mesh_name);
-
-        let (new_pos, new_rot) = extracted_instance.transform;
-        if let Some(render_instance) = render_instances.user_instances.get_mut(&extracted_instance.instance_entity) {
-            // Extracted instance already exists as a WorldRenderer instance, handle updates
-
-            let mesh_asset = GltfMeshAsset::from_src_path(mesh_src_path.clone());
-            if mesh_assets.meshes_changed.contains(&mesh_asset) {
-                // This mesh instance has its mesh source file changed, re-instance mesh with updated source file
-                
-                world_renderer.remove_instance(render_instance.instance_handle);
-                
-                let mesh = load_mesh_from_gltf_src(&mut world_renderer, mesh_src_path, extracted_instance.scale);
-                render_instance.instance_handle = world_renderer.add_instance(mesh, Affine3A::from_rotation_translation(new_rot, new_pos));
-                
-                mesh_assets.meshes_changed.remove(&mesh_asset);
-                // println!("Found changed {:?}", mesh_assets.meshes_changed);
-            } else {
-                // Otherwise, the normal case, update this mesh transform for its WorldRenderer instance
-                
-                world_renderer.set_instance_transform(
-                    render_instance.instance_handle,
-                    Affine3A::from_rotation_translation(new_rot, new_pos)
-                );
-            }
-        } else {
-            // No render instance exists for this mesh instance, add a new and unique WorldRenderer instance
-
-            // Instance a mesh from gltf only if we haven't done so for this mesh already
-            let mesh = if let Some(mesh_handle) = render_instances.unique_loaded_meshes.get(&extracted_instance.mesh_name) {
-                *mesh_handle
-            } else {
-                load_mesh_from_gltf_src(&mut world_renderer, mesh_src_path, extracted_instance.scale)
-            };
-
-            render_instances.user_instances.insert(
-                extracted_instance.instance_entity,
-                RenderInstance {
-                    instance_handle: world_renderer.add_instance(mesh, Affine3A::from_rotation_translation(new_rot, new_pos)),
-                    mesh_handle: mesh,
-                    transform: (new_pos, new_rot),
-                },
-            );
-            
-            render_instances.unique_loaded_meshes.insert(extracted_instance.mesh_name.clone(), mesh);
-        }
-    }
 
     // Update WorldFrameDescription
     let lens = CameraLens {
@@ -174,18 +120,49 @@ pub fn update_world_renderer(
     };
     frame_desc.camera_matrices = extracted_camera.transform.through(&lens);
     frame_desc.sun_direction = extracted_camera.environment.sun_theta_phi.direction();
-
 }
 
-fn load_mesh_from_gltf_src(world_renderer: &mut WorldRenderer, gltf_src_path: String, scale: f32) -> MeshHandle {
-    world_renderer
-    .load_gltf_mesh(
-        &gltf_src_path,
-        scale,
-        AddMeshOptions::new(),
-    )
-    .expect(&format!(
-        "Kajiya error: could not find gltf {}",
-        gltf_src_path
-    ))
+pub enum WorldRendererCommand {
+    AddMesh(String, kajiya::asset::mesh::TriangleMesh),
+    UpdateInstTransform(InstanceHandle, MeshTransform),
+    AddInstance(Entity, MeshHandle, MeshTransform),
+}
+
+pub type WRCommandQueue = Vec<WorldRendererCommand>;
+
+pub fn process_world_renderer_cmds(
+    wr_res: NonSendMut<KajiyaRenderers>,
+    mut ri_map: ResMut<RenderInstancesMap>,
+    mut lm_map: ResMut<LoadedMeshesMap>,
+    mut wr_command_queue: ResMut<WRCommandQueue>,
+) {
+    let mut world_renderer = wr_res.world_renderer.lock().unwrap();
+
+    while let Some(command) = wr_command_queue.pop() {
+        match command {
+            WorldRendererCommand::AddMesh(mesh_src, mesh) => {
+                let mesh_handle = world_renderer
+                    .load_gltf_mesh(
+                        AddMeshOptions::new(),
+                        &mesh,
+                    )
+                    .expect(&format!(
+                        "Kajiya error: load_gltf_mesh"
+                ));
+
+                lm_map.insert(mesh_src.clone(), RenderMesh::Ready(mesh_handle));
+            },
+            WorldRendererCommand::UpdateInstTransform(inst, transform) => {
+                let transform = Affine3A::from_scale_rotation_translation(Vec3::splat(transform.scale), transform.rotation, transform.position);
+                world_renderer.set_instance_transform(inst, transform);
+            },
+            WorldRendererCommand::AddInstance(entity, mesh, transform) => {
+                if let Some(mut render_instance) = ri_map.get_mut(&entity) {
+                    let transform = Affine3A::from_scale_rotation_translation(Vec3::splat(transform.scale), transform.rotation, transform.position);
+                    let instance_handle = world_renderer.add_instance(mesh, transform);
+                    render_instance.instance = WRInstance::Ready(instance_handle);
+                }
+            },
+        }
+    }
 }

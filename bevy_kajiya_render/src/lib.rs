@@ -4,6 +4,7 @@ mod asset;
 pub mod mesh;
 pub mod plugin;
 pub mod render_resources;
+pub mod render_instances;
 mod world_renderer;
 
 pub use camera::{EnvironmentSettings, KajiyaCamera, KajiyaCameraBundle};
