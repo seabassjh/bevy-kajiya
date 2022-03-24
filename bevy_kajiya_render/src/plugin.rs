@@ -149,10 +149,10 @@ impl Plugin for KajiyaRenderPlugin {
             .create_default_pools(&mut render_app.world);
 
         app.init_resource::<ScratchRenderWorld>();
-        // app
-        //     .add_asset::<crate::asset::GltfMeshAsset>()
-        //     .init_asset_loader::<crate::asset::GltfMeshAssetLoader>()
-        //     .add_startup_system(crate::asset::setup_assets);
+        app
+            .add_asset::<crate::asset::GltfMeshAsset>()
+            .init_asset_loader::<crate::asset::GltfMeshAssetLoader>()
+            .add_startup_system(crate::asset::setup_assets);
 
         render_app
             .add_stage(
@@ -166,7 +166,7 @@ impl Plugin for KajiyaRenderPlugin {
                 SystemStage::parallel()
                     .with_system(extract_camera)
                     .with_system(extract_meshes)
-                    // .with_system(crate::asset::watch_asset),
+                    .with_system(crate::asset::watch_asset),
             )
             .add_stage(
                 KajiyaRenderStage::Process,
@@ -181,7 +181,7 @@ impl Plugin for KajiyaRenderPlugin {
             )
             .add_stage(KajiyaRenderStage::Render, SystemStage::single(render_frame))
             .add_stage(KajiyaRenderStage::Cleanup, SystemStage::parallel())
-            // .init_resource::<crate::asset::MeshAssetsState>()
+            .init_resource::<crate::asset::MeshAssetsState>()
             .init_resource::<WRCommandQueue>()
             .init_resource::<RenderInstancesMap>()
             .init_resource::<LoadedMeshesMap>()

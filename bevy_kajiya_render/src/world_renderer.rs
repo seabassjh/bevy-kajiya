@@ -124,8 +124,10 @@ pub fn update_world_renderer_view(
 
 pub enum WorldRendererCommand {
     AddMesh(String, kajiya::asset::mesh::TriangleMesh),
+    UpdateMesh(String),
     UpdateInstTransform(InstanceHandle, MeshTransform),
     AddInstance(Entity, MeshHandle, MeshTransform),
+    ReplaceInstance(InstanceHandle, Entity),
 }
 
 pub type WRCommandQueue = Vec<WorldRendererCommand>;
@@ -162,6 +164,16 @@ pub fn process_world_renderer_cmds(
                     let instance_handle = world_renderer.add_instance(mesh, transform);
                     render_instance.instance = WRInstance::Ready(instance_handle);
                 }
+            },
+            WorldRendererCommand::ReplaceInstance(old_inst, entity) => {
+                if let Some(mut render_instance) = ri_map.get_mut(&entity) {
+                    world_renderer.remove_instance(old_inst);
+                    render_instance.instance = WRInstance::None;
+                    lm_map.insert(render_instance.mesh_source.clone(), RenderMesh::Empty);
+                }
+            },
+            WorldRendererCommand::UpdateMesh(mesh_src) => {
+                
             },
         }
     }

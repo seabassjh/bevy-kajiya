@@ -13,18 +13,18 @@ use crate::{KajiyaMesh, plugin::RenderWorld, mesh::RenderInstances};
 #[derive(Clone, Debug, Deserialize, TypeUuid, Hash, PartialEq, Eq)]
 #[uuid = "39cadc56-aa9c-4543-8640-a018b74b5052"]
 pub struct GltfMeshAsset {
-    pub mesh_src_path: String,
+    pub mesh_src: String,
 }
 impl GltfMeshAsset {
     pub fn new(path: String) -> Self {
         Self {
-            mesh_src_path: path,
+            mesh_src: path,
         }
     }
 
     pub fn from_src_path(path: String) -> Self {
         Self {
-            mesh_src_path: path,
+            mesh_src: path,
         }
     }
 }
@@ -33,6 +33,7 @@ impl GltfMeshAsset {
 pub struct MeshAssetsState {
     pub meshes_changed: HashSet<GltfMeshAsset>,
     pub assets_ready: HashSet<Handle<GltfMeshAsset>>,
+    pub unique_gltf_assets: HashSet<String>,
 }
 
 #[derive(Default)]
@@ -48,9 +49,15 @@ impl AssetLoader for GltfMeshAssetLoader {
             let mut mesh_src_path = load_context.path().to_string_lossy().to_string();
             mesh_src_path = "assets/".to_string() + &mesh_src_path.replace("\\", "/");
 
-            let custom_asset = GltfMeshAsset::new(mesh_src_path);
+            // Get the mesh source name from the full path 
+            // (ex: "/assets/meshes/my_mesh/scene.gltf" -> "my_mesh")
+            let dirs: Vec<&str> = mesh_src_path.split("/").collect();
+            if let Some(mesh_src) = dirs.get(2) {
+                let custom_asset = GltfMeshAsset::new(mesh_src.to_string());
 
-            load_context.set_default_asset(LoadedAsset::new(custom_asset));
+                load_context.set_default_asset(LoadedAsset::new(custom_asset));
+            }
+
             Ok(())
         })
     }
@@ -64,17 +71,20 @@ pub fn setup_assets(asset_server: ResMut<AssetServer>) {
     asset_server.watch_for_changes().unwrap();
 }
 
-pub fn register_unique_gltf_asset(asset_server: &mut AssetServer, render_instances: &RenderInstances, name: &String) {
-    if render_instances.unique_loaded_meshes.get(name).is_none() {
+pub fn register_unique_gltf_asset(asset_server: &mut AssetServer, render_world: &mut RenderWorld, name: &String) {
+    let mut state = render_world.get_resource_mut::<MeshAssetsState>().unwrap();
+    
+    if !state.unique_gltf_assets.contains(name) {
         let _handle: Handle<GltfMeshAsset>;
         _handle = asset_server.load(&format!("meshes/{}/scene.gltf", name));
+        state.unique_gltf_assets.insert(name.to_string());
     }
 }
 
 pub fn watch_asset(
     mut render_world: ResMut<RenderWorld>,
     mut ev_asset: EventReader<AssetEvent<GltfMeshAsset>>,
-    mut custom_assets: ResMut<Assets<GltfMeshAsset>>,
+    custom_assets: Res<Assets<GltfMeshAsset>>,
 ) {
     let mut state = render_world.get_resource_mut::<MeshAssetsState>().unwrap();
 
@@ -90,9 +100,7 @@ pub fn watch_asset(
                     state.assets_ready.insert(handle.to_owned());
                 }
             }
-            AssetEvent::Removed { handle } => {
-                // an image was unloaded
-            }
+            _ => {},
         }
     }
 }

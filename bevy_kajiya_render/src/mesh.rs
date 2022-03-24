@@ -4,7 +4,7 @@ use bevy::{math, prelude::*, utils::HashMap};
 use glam::{Quat, Vec3};
 use kajiya::world_renderer::{InstanceHandle, MeshHandle};
 
-use crate::{plugin::RenderWorld, asset::register_unique_gltf_asset};
+use crate::{plugin::RenderWorld, asset::{register_unique_gltf_asset, MeshAssetsState}};
 
 /// An Axis-Aligned Bounding Box
 #[derive(Component, Clone, Debug, Default)]
@@ -130,18 +130,19 @@ pub fn extract_meshes(
     mut render_world: ResMut<RenderWorld>,
     mut asset_server: ResMut<AssetServer>,
 ) {
-    let mut render_instances = render_world.get_resource_mut::<RenderInstances>().unwrap();
     let mut mesh_instances: Vec<MeshInstanceExtractedBundle> = vec![];
     
     // Extract any meshes instanced by the scene
-    while let Some((instance, instance_transform)) = render_instances.scene_mesh_instance_queue.pop() {
+    while let Some((instance, instance_transform)) = 
+    render_world.get_resource_mut::<RenderInstances>().unwrap()
+    .scene_mesh_instance_queue.pop() {
 
         let mesh_name = match instance.mesh {
             KajiyaMesh::Name(name) => name,
             KajiyaMesh::None => return,
         };
 
-        // register_unique_gltf_asset(&mut asset_server, &render_instances, &mesh_name);
+        register_unique_gltf_asset(&mut asset_server, &mut render_world, &mesh_name);
 
         let entity = commands.spawn_bundle(KajiyaMeshInstanceBundle {
             mesh_instance: KajiyaMeshInstance { 
@@ -172,7 +173,7 @@ pub fn extract_meshes(
 
         match &mesh_instance.mesh {
             KajiyaMesh::Name(mesh_name) => {
-                // register_unique_gltf_asset(&mut asset_server, &render_instances, &mesh_name);
+                register_unique_gltf_asset(&mut asset_server, &mut render_world, &mesh_name);
 
                 mesh_instances.push(MeshInstanceExtractedBundle {
                     mesh_instance: MeshInstanceExtracted {
