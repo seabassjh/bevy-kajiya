@@ -76,7 +76,7 @@ pub fn setup_world_renderer(
 
         let mesh_instance = KajiyaMeshInstance {
             mesh: KajiyaMesh::Name(instance.mesh.clone()),
-            emission: 1.0,
+            ..Default::default()
         };
 
         let instance_transform = Transform::from_translation(position.into()).with_scale(scale.into());

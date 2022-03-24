@@ -93,11 +93,12 @@ pub enum MeshInstanceType {
 pub struct KajiyaMeshInstance {
     pub mesh: KajiyaMesh,
     pub emission: f32,
+    pub selection_bb_size: f32,
 }
 
 impl Default for KajiyaMeshInstance {
     fn default() -> Self {
-        Self { mesh: Default::default(), emission: 1.0 }
+        Self { mesh: Default::default(), emission: 1.0, selection_bb_size: 1.0, }
     }
 }
 
@@ -148,7 +149,7 @@ pub fn extract_meshes(
         let entity = commands.spawn_bundle(KajiyaMeshInstanceBundle {
             mesh_instance: KajiyaMeshInstance { 
                 mesh: KajiyaMesh::Name(mesh_name.clone()),
-                emission: 1.0,
+                ..Default::default()
             },
             transform: instance_transform,
             ..Default::default()
