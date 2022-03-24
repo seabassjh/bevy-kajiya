@@ -72,12 +72,13 @@ pub fn setup_world_renderer(
 
     for instance in scene_desc.instances.iter() {
         let position: [f32; 3] = instance.position.into();
+        let scale: [f32; 3] = Vec3::splat(instance.scale).into();
 
         let mesh_instance = KajiyaMeshInstance { 
             mesh: KajiyaMesh::Name(instance.mesh.clone()),
-            scale: instance.scale,
         };
-        let instance_transform = Transform::from_translation(position.into());
+
+        let instance_transform = Transform::from_translation(position.into()).with_scale(scale.into());
         
         render_instances.
             scene_mesh_instance_queue.push((mesh_instance, instance_transform));
@@ -155,12 +156,12 @@ pub fn process_world_renderer_cmds(
                 lm_map.insert(mesh_src.clone(), RenderMesh::Ready(mesh_handle));
             },
             WorldRendererCommand::UpdateInstTransform(inst, transform) => {
-                let transform = Affine3A::from_scale_rotation_translation(Vec3::splat(transform.scale), transform.rotation, transform.position);
+                let transform = Affine3A::from_scale_rotation_translation(transform.scale, transform.rotation, transform.position);
                 world_renderer.set_instance_transform(inst, transform);
             },
             WorldRendererCommand::AddInstance(entity, mesh, transform) => {
                 if let Some(mut render_instance) = ri_map.get_mut(&entity) {
-                    let transform = Affine3A::from_scale_rotation_translation(Vec3::splat(transform.scale), transform.rotation, transform.position);
+                    let transform = Affine3A::from_scale_rotation_translation(transform.scale, transform.rotation, transform.position);
                     let instance_handle = world_renderer.add_instance(mesh, transform);
                     render_instance.instance = WRInstance::Ready(instance_handle);
                 }

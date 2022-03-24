@@ -92,12 +92,11 @@ pub enum MeshInstanceType {
 #[derive(Component, Clone)]
 pub struct KajiyaMeshInstance {
     pub mesh: KajiyaMesh,
-    pub scale: f32,
 }
 
 impl Default for KajiyaMeshInstance {
     fn default() -> Self {
-        Self { mesh: Default::default(), scale: 1.0 }
+        Self { mesh: Default::default() }
     }
 }
 
@@ -105,7 +104,7 @@ impl Default for KajiyaMeshInstance {
 pub struct MeshTransform {
     pub position: Vec3,
     pub rotation: Quat,
-    pub scale: f32,
+    pub scale: Vec3,
 }
 
 #[derive(Component, Clone)]
@@ -147,7 +146,6 @@ pub fn extract_meshes(
         let entity = commands.spawn_bundle(KajiyaMeshInstanceBundle {
             mesh_instance: KajiyaMeshInstance { 
                 mesh: KajiyaMesh::Name(mesh_name.clone()),
-                scale: instance.scale,
             },
             transform: instance_transform,
             ..Default::default()
@@ -155,7 +153,8 @@ pub fn extract_meshes(
 
         let pos = instance_transform.translation;
         let rot = instance_transform.rotation;
-        let transform = MeshTransform { position: Vec3::new(pos.x, pos.y, pos.z), rotation: Quat::from_xyzw(rot.x, rot.y, rot.z, rot.w), scale: instance.scale };
+        let scale = instance_transform.scale;
+        let transform = MeshTransform { position: Vec3::new(pos.x, pos.y, pos.z), rotation: Quat::from_xyzw(rot.x, rot.y, rot.z, rot.w), scale: Vec3::new(scale.x, scale.y, scale.z) };
 
         mesh_instances.push(MeshInstanceExtractedBundle {
             mesh_instance: MeshInstanceExtracted {
@@ -169,7 +168,8 @@ pub fn extract_meshes(
     for (entity, transform, mesh_instance) in query.iter() {
         let pos = transform.translation;
         let rot = transform.rotation;
-        let transform = MeshTransform { position: Vec3::new(pos.x, pos.y, pos.z), rotation: Quat::from_xyzw(rot.x, rot.y, rot.z, rot.w), scale: mesh_instance.scale };
+        let scale = transform.scale;
+        let transform = MeshTransform { position: Vec3::new(pos.x, pos.y, pos.z), rotation: Quat::from_xyzw(rot.x, rot.y, rot.z, rot.w), scale: Vec3::new(scale.x, scale.y, scale.z) };
 
         match &mesh_instance.mesh {
             KajiyaMesh::Name(mesh_name) => {
