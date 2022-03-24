@@ -74,8 +74,9 @@ pub fn setup_world_renderer(
         let position: [f32; 3] = instance.position.into();
         let scale: [f32; 3] = Vec3::splat(instance.scale).into();
 
-        let mesh_instance = KajiyaMeshInstance { 
+        let mesh_instance = KajiyaMeshInstance {
             mesh: KajiyaMesh::Name(instance.mesh.clone()),
+            emission: 1.0,
         };
 
         let instance_transform = Transform::from_translation(position.into()).with_scale(scale.into());
@@ -129,6 +130,7 @@ pub enum WorldRendererCommand {
     UpdateInstTransform(InstanceHandle, MeshTransform),
     AddInstance(Entity, MeshHandle, MeshTransform),
     ReplaceInstance(InstanceHandle, Entity),
+    SetEmissiveMultiplier(InstanceHandle, f32),
 }
 
 pub type WRCommandQueue = Vec<WorldRendererCommand>;
@@ -173,9 +175,12 @@ pub fn process_world_renderer_cmds(
                     lm_map.insert(render_instance.mesh_source.clone(), RenderMesh::Empty);
                 }
             },
-            WorldRendererCommand::UpdateMesh(mesh_src) => {
-                
+            WorldRendererCommand::SetEmissiveMultiplier(inst, value) => {
+                world_renderer
+                    .get_instance_dynamic_parameters_mut(inst)
+                    .emissive_multiplier = value;
             },
+            _ => {},
         }
     }
 }

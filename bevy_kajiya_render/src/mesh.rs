@@ -92,11 +92,12 @@ pub enum MeshInstanceType {
 #[derive(Component, Clone)]
 pub struct KajiyaMeshInstance {
     pub mesh: KajiyaMesh,
+    pub emission: f32,
 }
 
 impl Default for KajiyaMeshInstance {
     fn default() -> Self {
-        Self { mesh: Default::default() }
+        Self { mesh: Default::default(), emission: 1.0 }
     }
 }
 
@@ -112,6 +113,7 @@ pub struct MeshInstanceExtracted {
     pub instance_entity: Entity,
     pub mesh_name: String,
     pub transform: MeshTransform,
+    pub emission: f32,
 }
 
 #[derive(Bundle, Clone)]
@@ -146,6 +148,7 @@ pub fn extract_meshes(
         let entity = commands.spawn_bundle(KajiyaMeshInstanceBundle {
             mesh_instance: KajiyaMeshInstance { 
                 mesh: KajiyaMesh::Name(mesh_name.clone()),
+                emission: 1.0,
             },
             transform: instance_transform,
             ..Default::default()
@@ -161,6 +164,7 @@ pub fn extract_meshes(
                 instance_entity: entity,
                 mesh_name,
                 transform,
+                emission: 1.0,
             },
         });
     }
@@ -180,6 +184,7 @@ pub fn extract_meshes(
                         instance_entity: entity,
                         mesh_name: mesh_name.to_string(),
                         transform,
+                        emission: mesh_instance.emission,
                     },
                 });
             }

@@ -48,6 +48,7 @@ pub fn process_renderer_instances(
                         wr_command_queue.push(WorldRendererCommand::ReplaceInstance(inst_handle, extracted_instance.instance_entity));
                         render_instance.instance = WRInstance::Queued;
                     } else {
+                        wr_command_queue.push(WorldRendererCommand::SetEmissiveMultiplier(inst_handle, extracted_instance.emission));
                         wr_command_queue.push(WorldRendererCommand::UpdateInstTransform(inst_handle, render_instance.transform));
                     }
                 },
