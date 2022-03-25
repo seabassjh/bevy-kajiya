@@ -6,18 +6,33 @@ use kajiya::math;
 
 use crate::{plugin::RenderWorld, world_renderer::SunState};
 
-#[derive(Component, Copy, Clone)]
+#[derive(Component, Reflect, Copy, Clone)]
+#[reflect(Component)]
 pub struct KajiyaCamera {
     pub vertical_fov: f32,
     pub near_plane_distance: f32,
     pub aspect_ratio: f32,
 }
 
-impl Default for KajiyaCamera {
-    fn default() -> Self {
+impl KajiyaCamera {
+    pub fn default() -> Self {
         KajiyaCamera {
             near_plane_distance: 0.01,
             aspect_ratio: 1.0,
+            vertical_fov: 52.0,
+        }
+    }
+}
+
+impl FromWorld for KajiyaCamera {
+    fn from_world(world: &mut World) -> Self {
+
+        let windows = world.get_resource_mut::<bevy::window::Windows>().unwrap();
+        let window = windows.get_primary().unwrap();
+
+        KajiyaCamera {
+            near_plane_distance: 0.01,
+            aspect_ratio: window.requested_width() / window.requested_height(),
             vertical_fov: 52.0,
         }
     }
@@ -85,7 +100,8 @@ impl KajiyaCamera {
     }
 }
 
-#[derive(Component, Copy, Clone)]
+#[derive(Component, Reflect, Copy, Clone)]
+#[reflect(Component)]
 pub struct EnvironmentSettings {
     pub sun_theta_phi: (f32, f32),
 }
@@ -98,7 +114,7 @@ impl Default for EnvironmentSettings {
     }
 }
 
-#[derive(Bundle, Default)]
+#[derive(Bundle)]
 pub struct KajiyaCameraBundle {
     pub camera: KajiyaCamera,
     pub environment_settings: EnvironmentSettings,
@@ -106,16 +122,27 @@ pub struct KajiyaCameraBundle {
     pub global_transform: GlobalTransform,
 }
 
+impl Default for KajiyaCameraBundle {
+    fn default() -> Self {
+        Self { camera: KajiyaCamera::default(), environment_settings: Default::default(), transform: Default::default(), global_transform: Default::default() }
+    }
+}
+
 #[derive(Default)]
 pub struct ExtractedEnvironment {
     pub sun_theta_phi: SunState,
 }
 
-#[derive(Default)]
 pub struct ExtractedCamera {
     pub camera: KajiyaCamera,
     pub transform: (Vec3, Quat),
     pub environment: ExtractedEnvironment,
+}
+
+impl Default for ExtractedCamera {
+    fn default() -> Self {
+        Self { camera: KajiyaCamera::default(), transform: Default::default(), environment: Default::default() }
+    }
 }
 
 pub fn extract_camera(

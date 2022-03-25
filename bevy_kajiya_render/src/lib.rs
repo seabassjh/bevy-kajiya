@@ -8,10 +8,10 @@ pub mod render_instances;
 mod world_renderer;
 
 pub use camera::{EnvironmentSettings, KajiyaCamera, KajiyaCameraBundle};
-pub use mesh::{KajiyaMesh, KajiyaMeshInstance, KajiyaMeshInstanceBundle};
+pub use mesh::{KajiyaMeshInstance, KajiyaMeshInstanceBundle};
 pub use plugin::KajiyaRenderPlugin;
 
-const DEFAULT_SCENE_NAME: &str = "car";
+const DEFAULT_SCENE_NAME: &str = "main";
 
 #[derive(Clone)]
 pub struct KajiyaDescriptor {

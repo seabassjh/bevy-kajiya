@@ -15,7 +15,7 @@ use crate::{
         RenderInstances, MeshTransform,
     },
     render_resources::{KajiyaRenderers, RenderContext},
-    KajiyaDescriptor, KajiyaMeshInstanceBundle, KajiyaMeshInstance, KajiyaMesh, asset::{MeshAssetsState, GltfMeshAsset}, render_instances::{LoadedMeshesMap, RenderMesh, RenderInstancesMap, WRInstance},
+    KajiyaDescriptor, KajiyaMeshInstanceBundle, KajiyaMeshInstance, asset::{MeshAssetsState, GltfMeshAsset}, render_instances::{LoadedMeshesMap, RenderMesh, RenderInstancesMap, WRInstance},
 };
 
 #[derive(serde::Deserialize)]
@@ -55,11 +55,11 @@ pub fn setup_world_renderer(
     scene: Res<KajiyaDescriptor>,
     render_context: Res<RenderContext>,
 ) {
-    let scene_file = format!("assets/scenes/{}.ron", scene.scene_name);
-    let scene_desc: SceneDesc = ron::de::from_reader(
-        File::open(&scene_file).expect("Kajiya error: Could not open scene description file"),
-    )
-    .expect("Kajiya error: Could not read description file");
+    // let scene_file = format!("assets/scenes/{}.ron", scene.scene_name);
+    // let scene_desc: SceneDesc = ron::de::from_reader(
+    //     File::open(&scene_file).expect("Kajiya error: Could not open scene description file"),
+    // )
+    // .expect("Kajiya error: Could not read description file");
     let mut world_renderer = wr_res.world_renderer.lock().unwrap();
 
     world_renderer.world_gi_scale = scene.gi_volume_scale;
@@ -70,25 +70,25 @@ pub fn setup_world_renderer(
         scene_mesh_instance_queue: Vec::default(),
     };
 
-    for instance in scene_desc.instances.iter() {
-        let position: [f32; 3] = instance.position.into();
-        let scale: [f32; 3] = Vec3::splat(instance.scale).into();
+    // for instance in scene_desc.instances.iter() {
+    //     let position: [f32; 3] = instance.position.into();
+    //     let scale: [f32; 3] = Vec3::splat(instance.scale).into();
 
-        let mesh_instance = KajiyaMeshInstance {
-            mesh: KajiyaMesh::Name(instance.mesh.clone()),
-            ..Default::default()
-        };
+    //     let mesh_instance = KajiyaMeshInstance {
+    //         mesh: KajiyaMesh::Name(instance.mesh.clone()),
+    //         ..Default::default()
+    //     };
 
-        let instance_transform = Transform::from_translation(position.into()).with_scale(scale.into());
+    //     let instance_transform = Transform::from_translation(position.into()).with_scale(scale.into());
         
-        render_instances.
-            scene_mesh_instance_queue.push((mesh_instance, instance_transform));
-    }
+    //     render_instances.
+    //         scene_mesh_instance_queue.push((mesh_instance, instance_transform));
+    // }
 
     let extracted_camera = ExtractedCamera {
         camera: KajiyaCamera {
             aspect_ratio: render_context.aspect_ratio(),
-            ..Default::default()
+            ..KajiyaCamera::default()
         },
         ..Default::default()
     };

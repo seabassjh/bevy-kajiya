@@ -8,7 +8,7 @@ use bevy::{
 };
 use serde::Deserialize;
 
-use crate::{KajiyaMesh, plugin::RenderWorld, mesh::RenderInstances};
+use crate::{plugin::RenderWorld, mesh::RenderInstances};
 
 #[derive(Clone, Debug, Deserialize, TypeUuid, Hash, PartialEq, Eq)]
 #[uuid = "39cadc56-aa9c-4543-8640-a018b74b5052"]

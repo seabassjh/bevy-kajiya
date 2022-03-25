@@ -7,7 +7,8 @@ use kajiya::world_renderer::{InstanceHandle, MeshHandle};
 use crate::{plugin::RenderWorld, asset::{register_unique_gltf_asset, MeshAssetsState}};
 
 /// An Axis-Aligned Bounding Box
-#[derive(Component, Clone, Debug, Default)]
+#[derive(Component, Clone, Debug, Default, Reflect)]
+#[reflect(Component)]
 pub struct Aabb {
     pub center: math::Vec3,
     pub half_extents: math::Vec3,
@@ -71,27 +72,16 @@ pub struct KajiyaMeshInstanceBundle {
     pub global_transform: GlobalTransform,
 }
 
-#[derive(Clone, Debug)]
-pub enum KajiyaMesh {
-    Name(String),
-    None,
-}
-
-impl Default for KajiyaMesh {
-    fn default() -> Self {
-        Self::None
-    }
-}
-
 #[derive(Clone)]
 pub enum MeshInstanceType {
     UserInstanced(Entity),
     SceneInstanced(usize),
 }
 
-#[derive(Component, Clone)]
+#[derive(Component, Reflect, Clone)]
+#[reflect(Component)]
 pub struct KajiyaMeshInstance {
-    pub mesh: KajiyaMesh,
+    pub mesh: String,
     pub emission: f32,
     pub selection_bb_size: f32,
 }
@@ -139,16 +129,13 @@ pub fn extract_meshes(
     render_world.get_resource_mut::<RenderInstances>().unwrap()
     .scene_mesh_instance_queue.pop() {
 
-        let mesh_name = match instance.mesh {
-            KajiyaMesh::Name(name) => name,
-            KajiyaMesh::None => return,
-        };
+        let mesh_name = instance.mesh;
 
         register_unique_gltf_asset(&mut asset_server, &mut render_world, &mesh_name);
 
         let entity = commands.spawn_bundle(KajiyaMeshInstanceBundle {
             mesh_instance: KajiyaMeshInstance { 
-                mesh: KajiyaMesh::Name(mesh_name.clone()),
+                mesh: mesh_name.clone(),
                 ..Default::default()
             },
             transform: instance_transform,
@@ -176,21 +163,16 @@ pub fn extract_meshes(
         let scale = transform.scale;
         let transform = MeshTransform { position: Vec3::new(pos.x, pos.y, pos.z), rotation: Quat::from_xyzw(rot.x, rot.y, rot.z, rot.w), scale: Vec3::new(scale.x, scale.y, scale.z) };
 
-        match &mesh_instance.mesh {
-            KajiyaMesh::Name(mesh_name) => {
-                register_unique_gltf_asset(&mut asset_server, &mut render_world, &mesh_name);
+        register_unique_gltf_asset(&mut asset_server, &mut render_world, &mesh_instance.mesh);
 
-                mesh_instances.push(MeshInstanceExtractedBundle {
-                    mesh_instance: MeshInstanceExtracted {
-                        instance_entity: entity,
-                        mesh_name: mesh_name.to_string(),
-                        transform,
-                        emission: mesh_instance.emission,
-                    },
-                });
-            }
-            KajiyaMesh::None => {}
-        }
+        mesh_instances.push(MeshInstanceExtractedBundle {
+            mesh_instance: MeshInstanceExtracted {
+                instance_entity: entity,
+                mesh_name: mesh_instance.mesh.to_string(),
+                transform,
+                emission: mesh_instance.emission,
+            },
+        });
     }
 
     render_world.spawn_batch(mesh_instances);

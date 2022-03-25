@@ -86,7 +86,7 @@ Then you can spawn the mesh with:
 ```
     commands.spawn_bundle(KajiyaMeshInstanceBundle {
         mesh_instance: KajiyaMeshInstance { 
-            mesh: KajiyaMesh::User("my_mesh".to_string()),
+            mesh: "my_mesh".to_string(),
         },
         transform: Transform::from_translation(Vec3::new(0.0, 0.0, 0.0)),
         ..Default::default()
