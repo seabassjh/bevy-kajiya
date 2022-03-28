@@ -16,7 +16,7 @@ use std::ops::{Deref, DerefMut};
 use std::sync::Mutex;
 use turbosloth::LazyCache;
 
-use crate::{frame::render_frame, render_instances::{process_renderer_instances, process_renderer_meshes, LoadedMeshesMap, RenderInstancesMap}, world_renderer::{WRCommandQueue, process_world_renderer_cmds, update_world_renderer_view}};
+use crate::{frame::render_frame, render_instances::{process_renderer_instances, process_renderer_meshes, LoadedMeshesMap, RenderInstancesMap, remove_unused_instances}, world_renderer::{WRCommandQueue, process_world_renderer_cmds, update_world_renderer_view}};
 use crate::render_resources::{
     KajiyaRGRenderer, KajiyaRenderBackend, KajiyaRenderers, RenderContext, WindowConfig,
 };
@@ -174,6 +174,7 @@ impl Plugin for KajiyaRenderPlugin {
                     .with_system(update_world_renderer_view)
                     .with_system(process_renderer_instances)
                     .with_system(process_renderer_meshes)
+                    .with_system(remove_unused_instances)
             )
             .add_stage(
                 KajiyaRenderStage::Prepare,

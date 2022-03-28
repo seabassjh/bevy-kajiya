@@ -129,6 +129,7 @@ pub enum WorldRendererCommand {
     UpdateMesh(String),
     UpdateInstTransform(InstanceHandle, MeshTransform),
     AddInstance(Entity, MeshHandle, MeshTransform),
+    RemoveInstance(InstanceHandle),
     ReplaceInstance(InstanceHandle, Entity),
     SetEmissiveMultiplier(InstanceHandle, f32),
 }
@@ -167,6 +168,9 @@ pub fn process_world_renderer_cmds(
                     let instance_handle = world_renderer.add_instance(mesh, transform);
                     render_instance.instance = WRInstance::Ready(instance_handle);
                 }
+            },
+            WorldRendererCommand::RemoveInstance(inst_handle) => {
+                world_renderer.remove_instance(inst_handle);
             },
             WorldRendererCommand::ReplaceInstance(old_inst, entity) => {
                 if let Some(mut render_instance) = ri_map.get_mut(&entity) {

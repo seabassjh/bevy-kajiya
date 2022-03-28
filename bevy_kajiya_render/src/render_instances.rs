@@ -15,16 +15,19 @@ pub enum RenderMesh {
     Update,
 }
 
+#[derive(Clone)]
 pub enum WRInstance {
     None,
     Queued,
     Ready(InstanceHandle),
 }
 
+#[derive(Clone)]
 pub struct RenderInstance {
     pub mesh_source: String,
     pub transform: MeshTransform,
     pub instance: WRInstance,
+    pub active: bool,
 }
 
 pub type RenderInstancesMap = HashMap<Entity, RenderInstance>;
@@ -38,6 +41,10 @@ pub fn process_renderer_instances(
 ) {
     for extracted_instance in query_extracted_instances.iter() {
         if let Some(mut render_instance) = ri_map.get_mut(&extracted_instance.instance_entity) {
+            
+            // Mark the instance as active to avoid it being deleted until it should be deleted
+            render_instance.active = true;
+            
             // Normal case; add WR instance to or update WR instance transform 
 
             render_instance.transform = extracted_instance.transform;
@@ -66,6 +73,7 @@ pub fn process_renderer_instances(
                 mesh_source: extracted_instance.mesh_name.clone(),
                 transform: extracted_instance.transform,
                 instance: WRInstance::None,
+                active: true,
             };
 
             ri_map.insert(extracted_instance.instance_entity, new_render_instance);
@@ -75,6 +83,34 @@ pub fn process_renderer_instances(
             }
 
         }
+    }
+}
+
+pub fn remove_unused_instances(
+    mut ri_map: ResMut<RenderInstancesMap>,
+    mut wr_command_queue: ResMut<WRCommandQueue>,
+    query_extracted_instances: Query<&MeshInstanceExtracted>,
+) {
+    for (entity, ri) in ri_map.iter_mut() {
+        ri.active = false;
+    }
+
+    for extracted_instance in query_extracted_instances.iter() {
+        if let Some(mut render_instance) = ri_map.get_mut(&extracted_instance.instance_entity) {
+            render_instance.active = true;
+        }
+    }
+
+    for (entity, inst_handle) in ri_map.clone().iter().filter_map(|(e, ri)| match ri.instance {
+        WRInstance::Ready(ih) => if !ri.active {
+            Some((e, ih))
+        } else {
+            None
+        },
+        _ => None,
+    }) {
+        wr_command_queue.push(WorldRendererCommand::RemoveInstance(inst_handle));
+        ri_map.remove(&entity);
     }
 }
 
