@@ -188,7 +188,7 @@ impl Plugin for KajiyaRenderPlugin {
 
                     // reserve all existing app entities for use in render_app
                     // they can only be spawned using `get_or_spawn()`
-                    let meta_len = app_world.entities().meta.len();
+                    let meta_len = app_world.entities().meta_len();
                     render_app
                         .world
                         .entities()
@@ -197,7 +197,7 @@ impl Plugin for KajiyaRenderPlugin {
                     // flushing as "invalid" ensures that app world entities aren't added as "empty archetype" entities by default
                     // these entities cannot be accessed without spawning directly onto them
                     // this _only_ works as expected because clear_entities() is called at the end of every frame.
-                    render_app.world.entities_mut().flush_as_invalid();
+                    unsafe { render_app.world.entities_mut() }.flush_as_invalid();
                 }
 
                 {
