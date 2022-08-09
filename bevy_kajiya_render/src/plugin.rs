@@ -1,6 +1,6 @@
 use bevy::{
     app::{App, AppLabel, Plugin},
-    ecs::schedule::RunOnce,
+    ecs::schedule::ShouldRun,
     prelude::*,
 };
 use kajiya::{
@@ -100,6 +100,8 @@ impl Plugin for KajiyaRenderPlugin {
             delta_seconds: 0.0,
         };
 
+        let raw_window_handle = unsafe { raw_window_handle.get_handle() };
+
         let render_backend = RenderBackend::new(
             &raw_window_handle,
             RenderBackendConfig {
@@ -144,7 +146,7 @@ impl Plugin for KajiyaRenderPlugin {
             .add_stage(
                 KajiyaRenderStage::Setup,
                 SystemStage::parallel()
-                    .with_run_criteria(RunOnce::default())
+                    .with_run_criteria(ShouldRun::once)
                     .with_system(setup_world_renderer.exclusive_system().at_start()),
             )
             .add_stage(

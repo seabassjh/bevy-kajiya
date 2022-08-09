@@ -1,4 +1,4 @@
-use bevy::{prelude::App, window::HasRawWindowHandleWrapper};
+use bevy::{prelude::App, window::RawWindowHandleWrapper};
 use kajiya::{
     backend::RenderBackend, rg::renderer::Renderer, ui_renderer::UiRenderer,
     world_renderer::WorldRenderer,
@@ -31,7 +31,7 @@ impl WindowProperties {
     }
 }
 pub struct WindowConfig {
-    pub raw_window_handle: HasRawWindowHandleWrapper,
+    pub raw_window_handle: RawWindowHandleWrapper,
     pub swapchain_extent: [u32; 2],
     pub render_extent: [u32; 2],
     pub temporal_upscale_extent: [u32; 2],
@@ -59,8 +59,7 @@ impl WindowConfig {
         let windows = world.get_resource_mut::<bevy::window::Windows>().unwrap();
         let window = windows.get_primary().unwrap();
 
-        let raw_window_handle = unsafe { window.raw_window_handle().get_handle() };
-
+        let raw_window_handle = window.raw_window_handle();
         // TODO: make configurable
         let temporal_upsampling = 1.0;
 

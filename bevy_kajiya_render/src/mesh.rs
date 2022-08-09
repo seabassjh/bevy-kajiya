@@ -116,8 +116,7 @@ pub fn extract_meshes(
 
     let mut mesh_instances: Vec<MeshInstanceExtractedBundle> = vec![];
     for (entity, transform, mesh_instance) in query.iter() {
-        let pos = transform.translation;
-        let rot = transform.rotation;
+        let (_, rot, pos) = transform.to_scale_rotation_translation();
 
         let pos = Vec3::new(pos.x, pos.y, pos.z);
         let rot = Quat::from_xyzw(rot.x, rot.y, rot.z, rot.w);

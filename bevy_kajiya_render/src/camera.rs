@@ -66,8 +66,7 @@ impl KajiyaCamera {
     }
 
     pub fn view_matrix_from_transform(transform: &GlobalTransform) -> math::Mat4 {
-        let pos = transform.translation;
-        let rot = transform.rotation;
+        let (_, rot, pos) = transform.to_scale_rotation_translation();
 
         let pos = Vec3::new(pos.x, pos.y, pos.z);
         let rot = Quat::from_xyzw(rot.x, rot.y, rot.z, rot.w);
