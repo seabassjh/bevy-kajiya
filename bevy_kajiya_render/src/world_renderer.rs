@@ -1,7 +1,7 @@
 use std::fs::File;
 
 use bevy::{prelude::*, utils::HashMap};
-use glam::{Quat, Vec3, Affine3A};
+use glam::{Affine3A, Quat, Vec3};
 use kajiya::{
     camera::{CameraLens, LookThroughCamera},
     frame_desc::WorldFrameDesc,
@@ -50,7 +50,6 @@ impl SunState {
 
 pub fn setup_world_renderer(
     mut commands: Commands,
-    wr_res: NonSendMut<KajiyaRenderers>,
     scene: Res<KajiyaSceneDescriptor>,
     render_context: Res<RenderContext>,
 ) {
@@ -59,9 +58,6 @@ pub fn setup_world_renderer(
         File::open(&scene_file).expect("Kajiya error: Could not open scene description file"),
     )
     .expect("Kajiya error: Could not read description file");
-    let mut world_renderer = wr_res.world_renderer.lock().unwrap();
-
-    world_renderer.world_gi_scale = scene.gi_volume_scale;
 
     let mut scene_instances = Vec::new();
     for (indx, instance) in scene_desc.instances.iter().enumerate() {
@@ -123,7 +119,7 @@ pub fn update_world_renderer(
                 if let Some(render_instance) = render_instances.user_instances.get(&entity) {
                     world_renderer.set_instance_transform(
                         render_instance.instance_handle,
-                        Affine3A::from_rotation_translation(new_rot, new_pos)
+                        Affine3A::from_rotation_translation(new_rot, new_pos),
                     );
                 } else {
                     let mesh = world_renderer
@@ -139,7 +135,10 @@ pub fn update_world_renderer(
                     render_instances.user_instances.insert(
                         *entity,
                         RenderInstance {
-                            instance_handle: world_renderer.add_instance(mesh, Affine3A::from_rotation_translation(new_rot, new_pos)),
+                            instance_handle: world_renderer.add_instance(
+                                mesh,
+                                Affine3A::from_rotation_translation(new_rot, new_pos),
+                            ),
                             transform: (new_pos, new_rot),
                         },
                     );
@@ -165,7 +164,10 @@ pub fn update_world_renderer(
                     render_instances.scene_instances.insert(
                         *mesh_indx,
                         RenderInstance {
-                            instance_handle: world_renderer.add_instance(mesh, Affine3A::from_rotation_translation(new_rot, new_pos)),
+                            instance_handle: world_renderer.add_instance(
+                                mesh,
+                                Affine3A::from_rotation_translation(new_rot, new_pos),
+                            ),
                             transform: (new_pos, new_rot),
                         },
                     );

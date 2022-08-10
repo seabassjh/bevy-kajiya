@@ -79,7 +79,7 @@ impl Plugin for KajiyaRenderPlugin {
     /// Initializes the renderer, sets up the [`KajiyaRenderStage`](KajiyaRenderStage) and creates the rendering sub-app.
     fn build(&self, app: &mut App) {
         // Point `kajiya` to standard assets and shaders in the parent directory
-        set_standard_vfs_mount_points("./kajiya");
+        set_standard_vfs_mount_points("../kajiya");
 
         // Game-specific assets in the current directory
         set_vfs_mount_point("/baked", "./baked");
@@ -108,6 +108,7 @@ impl Plugin for KajiyaRenderPlugin {
                 swapchain_extent,
                 vsync,
                 graphics_debugging: false,
+                device_index: None,
             },
         )
         .unwrap();
