@@ -19,4 +19,12 @@ bevy_kajiya_render = { path = "bevy_kajiya_render" }
 
 [features]
 kajiya_egui = ["bevy_kajiya_core/kajiya_egui"]
-default = [ "kajiya_egui" ]
+
+[dev-dependencies]
+bevy = { version = "0.8.0", default-features = false, features = ["bevy_winit"] }
+dolly = "0.1"
+
+[patch.crates-io]
+# Official ray-tracing extensions
+rspirv = { git = "https://github.com/gfx-rs/rspirv.git", rev = "dae552c" }
+spirv_headers = { git = "https://github.com/gfx-rs/rspirv.git", rev = "dae552c" }

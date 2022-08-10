@@ -89,12 +89,12 @@ impl WindowConfig {
             swapchain_extent,
             render_extent,
             temporal_upscale_extent,
+            vsync: false,
             window_properties: WindowProperties(
                 window.physical_width(),
                 window.physical_height(),
                 window.scale_factor(),
             ),
-            vsync: false,
         }
     }
 }

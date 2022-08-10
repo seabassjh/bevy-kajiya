@@ -118,11 +118,10 @@ pub struct MeshInstanceExtractedBundle {
 // NOTE: don't forget to drain entities before next cycle to avoid entity duplicates
 pub fn extract_meshes(
     mut commands: Commands,
-    query: Query<(Entity, &GlobalTransform, &KajiyaMeshInstance)>,
     mut render_world: ResMut<RenderWorld>,
     mut asset_server: ResMut<AssetServer>,
 ) {
-    let mut mesh_instances: Vec<MeshInstanceExtractedBundle> = vec![];
+    let mesh_instances: Vec<MeshInstanceExtractedBundle> = vec![];
 
     // Extract any meshes instanced by the scene
     while let Some((instance, instance_transform)) = render_world
@@ -135,7 +134,7 @@ pub fn extract_meshes(
 
         register_unique_gltf_asset(&mut asset_server, &mut render_world, &mesh_name);
 
-        let entity = commands
+        let _entity = commands
             .spawn_bundle(KajiyaMeshInstanceBundle {
                 mesh_instance: KajiyaMeshInstance {
                     mesh: mesh_name.clone(),
@@ -149,44 +148,33 @@ pub fn extract_meshes(
         let pos = instance_transform.translation;
         let rot = instance_transform.rotation;
         let scale = instance_transform.scale;
-        let transform = MeshTransform {
+        let _transform = MeshTransform {
             position: Vec3::new(pos.x, pos.y, pos.z),
             rotation: Quat::from_xyzw(rot.x, rot.y, rot.z, rot.w),
             scale: Vec3::new(scale.x, scale.y, scale.z),
         };
 
-        mesh_instances.push(MeshInstanceExtractedBundle {
-            mesh_instance: MeshInstanceExtracted {
-                instance_entity: entity,
-                mesh_name,
-                transform,
-                emission: 1.0,
-            },
-        });
-    }
-
-    for (entity, transform, mesh_instance) in query.iter() {
-        let (scale, rot, pos) = transform.to_scale_rotation_translation();
-
-        let pos = Vec3::new(pos.x, pos.y, pos.z);
-        let rot = Quat::from_xyzw(rot.x, rot.y, rot.z, rot.w);
-
-        let transform = MeshTransform {
-            position: Vec3::new(pos.x, pos.y, pos.z),
-            rotation: Quat::from_xyzw(rot.x, rot.y, rot.z, rot.w),
-            scale: Vec3::new(scale.x, scale.y, scale.z),
-        };
-
-        register_unique_gltf_asset(&mut asset_server, &mut render_world, &mesh_instance.mesh);
-
-        mesh_instances.push(MeshInstanceExtractedBundle {
-            mesh_instance: MeshInstanceExtracted {
-                instance_entity: entity,
-                mesh_name: mesh_instance.mesh.to_string(),
-                transform,
-                emission: mesh_instance.emission,
-            },
-        });
+        // match &mesh_instance.mesh {
+        //     KajiyaMesh::User(mesh_name) => {
+        //         mesh_instances.push(MeshInstanceExtractedBundle {
+        //             mesh_instance: MeshInstanceExtracted {
+        //                 instance_type: MeshInstanceType::UserInstanced(entity),
+        //                 mesh_name: mesh_name.to_string(),
+        //                 transform: (pos, rot),
+        //             },
+        //         });
+        //     }
+        //     KajiyaMesh::Scene(mesh_indx, mesh_name) => {
+        //         mesh_instances.push(MeshInstanceExtractedBundle {
+        //             mesh_instance: MeshInstanceExtracted {
+        //                 instance_type: MeshInstanceType::SceneInstanced(*mesh_indx),
+        //                 mesh_name: mesh_name.to_string(),
+        //                 transform: (pos, rot),
+        //             },
+        //         });
+        //     }
+        //     KajiyaMesh::None => {}
+        // }
     }
 
     render_world.spawn_batch(mesh_instances);

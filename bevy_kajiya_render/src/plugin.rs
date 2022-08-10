@@ -89,10 +89,10 @@ impl Plugin for KajiyaRenderPlugin {
     /// Initializes the renderer, sets up the [`KajiyaRenderStage`](KajiyaRenderStage) and creates the rendering sub-app.
     fn build(&self, app: &mut App) {
         // Point `kajiya` to standard assets and shaders in the parent directory
-        set_standard_vfs_mount_points("./kajiya");
+        set_standard_vfs_mount_points("../kajiya");
 
         // Game-specific assets in the current directory
-        set_vfs_mount_point("/baked", "./baked");
+        set_vfs_mount_point("/cache", "./cache");
 
         let WindowConfig {
             raw_window_handle,
@@ -230,7 +230,7 @@ impl Plugin for KajiyaRenderPlugin {
                 // flushing as "invalid" ensures that app world entities aren't added as "empty archetype" entities by default
                 // these entities cannot be accessed without spawning directly onto them
                 // this _only_ works as expected because clear_entities() is called at the end of every frame.
-                unsafe { render_app.world.entities_mut().flush_as_invalid() };
+                unsafe { render_app.world.entities_mut() }.flush_as_invalid();
             }
 
             {

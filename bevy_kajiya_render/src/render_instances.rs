@@ -143,10 +143,10 @@ pub fn remove_unused_instances(
 
 pub fn process_renderer_meshes(
     mut lm_map: ResMut<LoadedMeshesMap>,
-    thread_pool: Res<AsyncComputeTaskPool>,
     mut wr_command_queue: ResMut<WRCommandQueue>,
     mut mesh_assets: ResMut<MeshAssetsState>,
 ) {
+    let thread_pool = AsyncComputeTaskPool::get();
     for (mesh_src, mesh) in lm_map.iter_mut() {
         match mesh {
             RenderMesh::Empty => {
