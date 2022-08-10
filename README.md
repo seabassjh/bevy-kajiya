@@ -20,7 +20,7 @@ You must disable the default bevy renderer.  Additionally, a patch is required f
 ```
 [dependencies]
 bevy-kajiya = { git = "https://github.com/Seabass247/bevy-kajiya" }
-bevy = { version = "0.6.0", default-features = false, features = ["bevy_winit"] }
+bevy = { version = "0.8.0", default-features = false, features = ["bevy_winit"] }
 
 [patch.crates-io]
 # Official ray-tracing extensions

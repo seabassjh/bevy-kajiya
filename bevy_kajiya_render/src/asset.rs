@@ -1,5 +1,3 @@
-use std::path::Path;
-
 use bevy::{
     asset::{AssetLoader, LoadContext, LoadedAsset},
     prelude::*,
@@ -8,7 +6,7 @@ use bevy::{
 };
 use serde::Deserialize;
 
-use crate::{plugin::RenderWorld, mesh::RenderInstances};
+use crate::plugin::RenderWorld;
 
 #[derive(Clone, Debug, Deserialize, TypeUuid, Hash, PartialEq, Eq)]
 #[uuid = "39cadc56-aa9c-4543-8640-a018b74b5052"]
@@ -17,15 +15,11 @@ pub struct GltfMeshAsset {
 }
 impl GltfMeshAsset {
     pub fn new(path: String) -> Self {
-        Self {
-            mesh_src: path,
-        }
+        Self { mesh_src: path }
     }
 
     pub fn from_src_path(path: String) -> Self {
-        Self {
-            mesh_src: path,
-        }
+        Self { mesh_src: path }
     }
 }
 
@@ -49,7 +43,7 @@ impl AssetLoader for GltfMeshAssetLoader {
             let mut mesh_src_path = load_context.path().to_string_lossy().to_string();
             mesh_src_path = "assets/".to_string() + &mesh_src_path.replace("\\", "/");
 
-            // Get the mesh source name from the full path 
+            // Get the mesh source name from the full path
             // (ex: "/assets/meshes/my_mesh/scene.gltf" -> "my_mesh")
             let dirs: Vec<&str> = mesh_src_path.split("/").collect();
             if let Some(mesh_src) = dirs.get(2) {
@@ -71,9 +65,13 @@ pub fn setup_assets(asset_server: ResMut<AssetServer>) {
     asset_server.watch_for_changes().unwrap();
 }
 
-pub fn register_unique_gltf_asset(asset_server: &mut AssetServer, render_world: &mut RenderWorld, name: &String) {
+pub fn register_unique_gltf_asset(
+    asset_server: &mut AssetServer,
+    render_world: &mut RenderWorld,
+    name: &String,
+) {
     let mut state = render_world.get_resource_mut::<MeshAssetsState>().unwrap();
-    
+
     if !state.unique_gltf_assets.contains(name) {
         let _handle: Handle<GltfMeshAsset>;
         _handle = asset_server.load(&format!("meshes/{}/scene.gltf", name));
@@ -90,8 +88,7 @@ pub fn watch_asset(
 
     for ev in ev_asset.iter() {
         match ev {
-            AssetEvent::Created { handle } |
-            AssetEvent::Modified { handle } => {
+            AssetEvent::Created { handle } | AssetEvent::Modified { handle } => {
                 if let Some(custom_asset) = custom_assets.get(handle) {
                     if state.assets_ready.contains(handle) {
                         state.meshes_changed.insert(custom_asset.to_owned());
@@ -100,7 +97,7 @@ pub fn watch_asset(
                     state.assets_ready.insert(handle.to_owned());
                 }
             }
-            _ => {},
+            _ => {}
         }
     }
 }

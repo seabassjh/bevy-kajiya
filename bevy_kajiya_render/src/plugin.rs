@@ -1,6 +1,6 @@
 use bevy::{
     app::{App, AppLabel, Plugin},
-    ecs::schedule::RunOnce,
+    ecs::schedule::ShouldRun,
     prelude::*,
 };
 use kajiya::{
@@ -16,13 +16,20 @@ use std::ops::{Deref, DerefMut};
 use std::sync::Mutex;
 use turbosloth::LazyCache;
 
-use crate::{frame::render_frame, render_instances::{process_renderer_instances, process_renderer_meshes, LoadedMeshesMap, RenderInstancesMap, remove_unused_instances}, world_renderer::{WRCommandQueue, process_world_renderer_cmds, update_world_renderer_view}};
 use crate::render_resources::{
     KajiyaRGRenderer, KajiyaRenderBackend, KajiyaRenderers, RenderContext, WindowConfig,
 };
-use crate::world_renderer::{setup_world_renderer};
+use crate::world_renderer::setup_world_renderer;
 use crate::KajiyaDescriptor;
 use crate::{camera::extract_camera, mesh::extract_meshes};
+use crate::{
+    frame::render_frame,
+    render_instances::{
+        process_renderer_instances, process_renderer_meshes, remove_unused_instances,
+        LoadedMeshesMap, RenderInstancesMap,
+    },
+    world_renderer::{process_world_renderer_cmds, update_world_renderer_view, WRCommandQueue},
+};
 
 /// Contains the Bevy interface to the Kajiya renderer.
 #[derive(Default)]
@@ -103,12 +110,15 @@ impl Plugin for KajiyaRenderPlugin {
             delta_seconds: 0.0,
         };
 
+        let raw_window_handle = unsafe { raw_window_handle.get_handle() };
+
         let render_backend = RenderBackend::new(
             &raw_window_handle,
             RenderBackendConfig {
                 swapchain_extent,
                 vsync,
                 graphics_debugging: false,
+                device_index: None,
             },
         )
         .unwrap();
@@ -146,11 +156,10 @@ impl Plugin for KajiyaRenderPlugin {
             .get_resource::<DefaultTaskPoolOptions>()
             .cloned()
             .unwrap_or_default()
-            .create_default_pools(&mut render_app.world);
+            .create_default_pools();
 
         app.init_resource::<ScratchRenderWorld>();
-        app
-            .add_asset::<crate::asset::GltfMeshAsset>()
+        app.add_asset::<crate::asset::GltfMeshAsset>()
             .init_asset_loader::<crate::asset::GltfMeshAssetLoader>()
             .add_startup_system(crate::asset::setup_assets);
 
@@ -158,7 +167,7 @@ impl Plugin for KajiyaRenderPlugin {
             .add_stage(
                 KajiyaRenderStage::Setup,
                 SystemStage::parallel()
-                    .with_run_criteria(RunOnce::default())
+                    .with_run_criteria(ShouldRun::once)
                     .with_system(setup_world_renderer.exclusive_system().at_start()),
             )
             .add_stage(
@@ -174,7 +183,7 @@ impl Plugin for KajiyaRenderPlugin {
                     .with_system(update_world_renderer_view)
                     .with_system(process_renderer_instances)
                     .with_system(process_renderer_meshes)
-                    .with_system(remove_unused_instances)
+                    .with_system(remove_unused_instances),
             )
             .add_stage(
                 KajiyaRenderStage::Prepare,
@@ -212,7 +221,7 @@ impl Plugin for KajiyaRenderPlugin {
 
                 // reserve all existing app entities for use in render_app
                 // they can only be spawned using `get_or_spawn()`
-                let meta_len = app_world.entities().meta.len();
+                let meta_len = app_world.entities().meta_len();
                 render_app
                     .world
                     .entities()
@@ -221,7 +230,7 @@ impl Plugin for KajiyaRenderPlugin {
                 // flushing as "invalid" ensures that app world entities aren't added as "empty archetype" entities by default
                 // these entities cannot be accessed without spawning directly onto them
                 // this _only_ works as expected because clear_entities() is called at the end of every frame.
-                render_app.world.entities_mut().flush_as_invalid();
+                unsafe { render_app.world.entities_mut().flush_as_invalid() };
             }
 
             {

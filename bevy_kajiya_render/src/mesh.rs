@@ -1,10 +1,8 @@
-use std::collections::HashSet;
-
 use bevy::{math, prelude::*, utils::HashMap};
 use glam::{Quat, Vec3};
 use kajiya::world_renderer::{InstanceHandle, MeshHandle};
 
-use crate::{plugin::RenderWorld, asset::{register_unique_gltf_asset, MeshAssetsState}};
+use crate::{asset::register_unique_gltf_asset, plugin::RenderWorld};
 
 /// An Axis-Aligned Bounding Box
 #[derive(Component, Clone, Debug, Default, Reflect)]
@@ -88,7 +86,11 @@ pub struct KajiyaMeshInstance {
 
 impl Default for KajiyaMeshInstance {
     fn default() -> Self {
-        Self { mesh: Default::default(), emission: 1.0, selection_bb_size: 1.0, }
+        Self {
+            mesh: Default::default(),
+            emission: 1.0,
+            selection_bb_size: 1.0,
+        }
     }
 }
 
@@ -116,36 +118,42 @@ pub struct MeshInstanceExtractedBundle {
 // NOTE: don't forget to drain entities before next cycle to avoid entity duplicates
 pub fn extract_meshes(
     mut commands: Commands,
-    query: Query<
-        (Entity, &GlobalTransform, &KajiyaMeshInstance),
-    >,
+    query: Query<(Entity, &GlobalTransform, &KajiyaMeshInstance)>,
     mut render_world: ResMut<RenderWorld>,
     mut asset_server: ResMut<AssetServer>,
 ) {
     let mut mesh_instances: Vec<MeshInstanceExtractedBundle> = vec![];
-    
-    // Extract any meshes instanced by the scene
-    while let Some((instance, instance_transform)) = 
-    render_world.get_resource_mut::<RenderInstances>().unwrap()
-    .scene_mesh_instance_queue.pop() {
 
+    // Extract any meshes instanced by the scene
+    while let Some((instance, instance_transform)) = render_world
+        .get_resource_mut::<RenderInstances>()
+        .unwrap()
+        .scene_mesh_instance_queue
+        .pop()
+    {
         let mesh_name = instance.mesh;
 
         register_unique_gltf_asset(&mut asset_server, &mut render_world, &mesh_name);
 
-        let entity = commands.spawn_bundle(KajiyaMeshInstanceBundle {
-            mesh_instance: KajiyaMeshInstance { 
-                mesh: mesh_name.clone(),
+        let entity = commands
+            .spawn_bundle(KajiyaMeshInstanceBundle {
+                mesh_instance: KajiyaMeshInstance {
+                    mesh: mesh_name.clone(),
+                    ..Default::default()
+                },
+                transform: instance_transform,
                 ..Default::default()
-            },
-            transform: instance_transform,
-            ..Default::default()
-        }).id();
+            })
+            .id();
 
         let pos = instance_transform.translation;
         let rot = instance_transform.rotation;
         let scale = instance_transform.scale;
-        let transform = MeshTransform { position: Vec3::new(pos.x, pos.y, pos.z), rotation: Quat::from_xyzw(rot.x, rot.y, rot.z, rot.w), scale: Vec3::new(scale.x, scale.y, scale.z) };
+        let transform = MeshTransform {
+            position: Vec3::new(pos.x, pos.y, pos.z),
+            rotation: Quat::from_xyzw(rot.x, rot.y, rot.z, rot.w),
+            scale: Vec3::new(scale.x, scale.y, scale.z),
+        };
 
         mesh_instances.push(MeshInstanceExtractedBundle {
             mesh_instance: MeshInstanceExtracted {
@@ -158,10 +166,16 @@ pub fn extract_meshes(
     }
 
     for (entity, transform, mesh_instance) in query.iter() {
-        let pos = transform.translation;
-        let rot = transform.rotation;
-        let scale = transform.scale;
-        let transform = MeshTransform { position: Vec3::new(pos.x, pos.y, pos.z), rotation: Quat::from_xyzw(rot.x, rot.y, rot.z, rot.w), scale: Vec3::new(scale.x, scale.y, scale.z) };
+        let (scale, rot, pos) = transform.to_scale_rotation_translation();
+
+        let pos = Vec3::new(pos.x, pos.y, pos.z);
+        let rot = Quat::from_xyzw(rot.x, rot.y, rot.z, rot.w);
+
+        let transform = MeshTransform {
+            position: Vec3::new(pos.x, pos.y, pos.z),
+            rotation: Quat::from_xyzw(rot.x, rot.y, rot.z, rot.w),
+            scale: Vec3::new(scale.x, scale.y, scale.z),
+        };
 
         register_unique_gltf_asset(&mut asset_server, &mut render_world, &mesh_instance.mesh);
 

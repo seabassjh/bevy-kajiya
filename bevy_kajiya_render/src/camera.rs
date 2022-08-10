@@ -26,7 +26,6 @@ impl KajiyaCamera {
 
 impl FromWorld for KajiyaCamera {
     fn from_world(world: &mut World) -> Self {
-
         let windows = world.get_resource_mut::<bevy::window::Windows>().unwrap();
         let window = windows.get_primary().unwrap();
 
@@ -81,11 +80,11 @@ impl KajiyaCamera {
     }
 
     pub fn view_matrix_from_transform(transform: &GlobalTransform) -> math::Mat4 {
-        let pos = transform.translation;
-        let rot = transform.rotation;
+        let (_, rot, pos) = transform.to_scale_rotation_translation();
 
         let pos = Vec3::new(pos.x, pos.y, pos.z);
         let rot = Quat::from_xyzw(rot.x, rot.y, rot.z, rot.w);
+
         let transform = (pos, rot);
         Self::view_matrix_from_pos_rot(transform)
     }
@@ -124,7 +123,12 @@ pub struct KajiyaCameraBundle {
 
 impl Default for KajiyaCameraBundle {
     fn default() -> Self {
-        Self { camera: KajiyaCamera::default(), environment_settings: Default::default(), transform: Default::default(), global_transform: Default::default() }
+        Self {
+            camera: KajiyaCamera::default(),
+            environment_settings: Default::default(),
+            transform: Default::default(),
+            global_transform: Default::default(),
+        }
     }
 }
 
@@ -141,7 +145,11 @@ pub struct ExtractedCamera {
 
 impl Default for ExtractedCamera {
     fn default() -> Self {
-        Self { camera: KajiyaCamera::default(), transform: Default::default(), environment: Default::default() }
+        Self {
+            camera: KajiyaCamera::default(),
+            transform: Default::default(),
+            environment: Default::default(),
+        }
     }
 }
 

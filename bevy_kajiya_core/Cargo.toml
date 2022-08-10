@@ -7,8 +7,8 @@ edition = "2021"
 
 [dependencies]
 bevy_kajiya_render = { path = "../bevy_kajiya_render" }
-bevy_kajiya_egui = { path = "../bevy_kajiya_egui" }
-bevy = { version = "0.6.0", default-features = false, features = ["bevy_winit"] }
+# bevy_kajiya_egui = { path = "../bevy_kajiya_egui" }
+bevy = { version = "0.8.0", default-features = false, features = ["bevy_winit"] }
 
 [features]
 kajiya_egui = []

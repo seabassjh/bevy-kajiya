@@ -1,4 +1,4 @@
-use bevy::{prelude::App, window::HasRawWindowHandleWrapper};
+use bevy::{prelude::App, window::RawWindowHandleWrapper};
 use kajiya::{
     backend::RenderBackend, rg::renderer::Renderer, ui_renderer::UiRenderer,
     world_renderer::WorldRenderer,
@@ -37,7 +37,7 @@ impl WindowProperties {
     }
 }
 pub struct WindowConfig {
-    pub raw_window_handle: HasRawWindowHandleWrapper,
+    pub raw_window_handle: RawWindowHandleWrapper,
     pub swapchain_extent: [u32; 2],
     pub render_extent: [u32; 2],
     pub temporal_upscale_extent: [u32; 2],
@@ -62,16 +62,17 @@ impl RenderContext {
 impl WindowConfig {
     pub fn from(app: &mut App) -> Self {
         let world = app.world.cell();
-        
+
         let temporal_upsampling = world
             .get_resource::<KajiyaDescriptor>()
             .map(|descriptor| (*descriptor).clone())
-            .unwrap_or_default().temporal_upsampling;
+            .unwrap_or_default()
+            .temporal_upsampling;
 
         let windows = world.get_resource_mut::<bevy::window::Windows>().unwrap();
         let window = windows.get_primary().unwrap();
 
-        let raw_window_handle = unsafe { window.raw_window_handle().get_handle() };
+        let raw_window_handle = window.raw_window_handle();
 
         let render_extent = [
             (window.requested_width() as f32 / temporal_upsampling) as u32,
@@ -88,12 +89,12 @@ impl WindowConfig {
             swapchain_extent,
             render_extent,
             temporal_upscale_extent,
-            vsync: window.vsync(),
             window_properties: WindowProperties(
                 window.physical_width(),
                 window.physical_height(),
                 window.scale_factor(),
             ),
+            vsync: false,
         }
     }
 }
