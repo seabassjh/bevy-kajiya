@@ -17,3 +17,4 @@ Cargo.lock
 
 bevy_kajiya_render/target/*
 bevy_kajiya_core/target/*
+/cache

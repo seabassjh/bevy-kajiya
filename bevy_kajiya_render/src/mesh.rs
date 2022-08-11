@@ -1,11 +1,18 @@
 use bevy::{math, prelude::*, utils::HashMap};
 use glam::{Quat, Vec3};
-use kajiya::world_renderer::InstanceHandle;
+use kajiya::backend::canonical_path_from_vfs;
+use kajiya::world_renderer::{InstanceHandle, MeshHandle};
+use std::{
+    collections::hash_map::DefaultHasher,
+    hash::{Hash, Hasher},
+    path::PathBuf,
+};
 
-use crate::plugin::RenderWorld;
+use crate::{asset::register_unique_gltf_asset, plugin::RenderWorld};
 
 /// An Axis-Aligned Bounding Box
-#[derive(Component, Clone, Debug, Default)]
+#[derive(Component, Clone, Debug, Default, Reflect)]
+#[reflect(Component)]
 pub struct Aabb {
     pub center: math::Vec3,
     pub half_extents: math::Vec3,
@@ -52,12 +59,14 @@ impl Aabb {
 
 pub struct RenderInstance {
     pub instance_handle: InstanceHandle,
+    pub mesh_handle: MeshHandle,
     pub transform: (Vec3, Quat),
 }
 
 pub struct RenderInstances {
     pub user_instances: HashMap<Entity, RenderInstance>,
-    pub scene_instances: HashMap<usize, RenderInstance>,
+    pub unique_loaded_meshes: HashMap<String, MeshHandle>,
+    pub scene_mesh_instance_queue: Vec<(KajiyaMeshInstance, Transform)>,
 }
 
 #[derive(Bundle, Default)]
@@ -68,34 +77,42 @@ pub struct KajiyaMeshInstanceBundle {
 }
 
 #[derive(Clone)]
-pub enum KajiyaMesh {
-    User(String),
-    Scene(usize, String),
-    None,
-}
-
-impl Default for KajiyaMesh {
-    fn default() -> Self {
-        Self::None
-    }
-}
-
-#[derive(Clone)]
 pub enum MeshInstanceType {
     UserInstanced(Entity),
     SceneInstanced(usize),
 }
 
-#[derive(Component, Clone, Default)]
+#[derive(Component, Reflect, Clone)]
+#[reflect(Component)]
 pub struct KajiyaMeshInstance {
-    pub mesh: KajiyaMesh,
+    pub mesh: String,
+    pub emission: f32,
+    pub selection_bb_size: f32,
+}
+
+impl Default for KajiyaMeshInstance {
+    fn default() -> Self {
+        Self {
+            mesh: Default::default(),
+            emission: 1.0,
+            selection_bb_size: 1.0,
+        }
+    }
+}
+
+#[derive(Component, Clone, Copy)]
+pub struct MeshTransform {
+    pub position: Vec3,
+    pub rotation: Quat,
+    pub scale: Vec3,
 }
 
 #[derive(Component, Clone)]
 pub struct MeshInstanceExtracted {
-    pub instance_type: MeshInstanceType,
+    pub instance_entity: Entity,
     pub mesh_name: String,
-    pub transform: (Vec3, Quat),
+    pub transform: MeshTransform,
+    pub emission: f32,
 }
 
 #[derive(Bundle, Clone)]
@@ -106,44 +123,68 @@ pub struct MeshInstanceExtractedBundle {
 // TODO: query for KajiyaMeshInstance(s) and internal render entity accordingly
 // NOTE: don't forget to drain entities before next cycle to avoid entity duplicates
 pub fn extract_meshes(
-    query: Query<
-        (Entity, &GlobalTransform, &KajiyaMeshInstance),
-        (Changed<GlobalTransform>, With<KajiyaMeshInstance>),
-    >,
+    query: Query<(Entity, &GlobalTransform, &KajiyaMeshInstance)>,
     mut render_world: ResMut<RenderWorld>,
+    mut asset_server: ResMut<AssetServer>,
 ) {
-    // let mut render_instances_map = render_world.get_resource_mut::<RenderInstances>().unwrap();
-
     let mut mesh_instances: Vec<MeshInstanceExtractedBundle> = vec![];
+
     for (entity, transform, mesh_instance) in query.iter() {
-        let (_, rot, pos) = transform.to_scale_rotation_translation();
+        let (scale, rotation, position) = transform.to_scale_rotation_translation();
+        let position_decomp: (f32, f32, f32) = position.into();
+        let rotation_decomp: [f32; 4] = rotation.into();
+        let scale_decomp: (f32, f32, f32) = scale.into();
 
-        let pos = Vec3::new(pos.x, pos.y, pos.z);
-        let rot = Quat::from_xyzw(rot.x, rot.y, rot.z, rot.w);
+        register_unique_gltf_asset(&mut asset_server, &mut render_world, &mesh_instance.mesh);
 
-        match &mesh_instance.mesh {
-            KajiyaMesh::User(mesh_name) => {
-                mesh_instances.push(MeshInstanceExtractedBundle {
-                    mesh_instance: MeshInstanceExtracted {
-                        instance_type: MeshInstanceType::UserInstanced(entity),
-                        mesh_name: mesh_name.to_string(),
-                        transform: (pos, rot),
-                    },
-                });
-            }
-            KajiyaMesh::Scene(mesh_indx, mesh_name) => {
-                mesh_instances.push(MeshInstanceExtractedBundle {
-                    mesh_instance: MeshInstanceExtracted {
-                        instance_type: MeshInstanceType::SceneInstanced(*mesh_indx),
-                        mesh_name: mesh_name.to_string(),
-                        transform: (pos, rot),
-                    },
-                });
-            }
-            KajiyaMesh::None => {}
-        }
+        mesh_instances.push(MeshInstanceExtractedBundle {
+            mesh_instance: MeshInstanceExtracted {
+                instance_entity: entity,
+                mesh_name: mesh_instance.mesh.to_string(),
+                transform: MeshTransform {
+                    position: Vec3::from(position_decomp),
+                    rotation: Quat::from_array(rotation_decomp),
+                    scale: Vec3::from(scale_decomp),
+                },
+                emission: mesh_instance.emission,
+            },
+        });
     }
 
     render_world.spawn_batch(mesh_instances);
-    // commands.spawn_batch(mesh_instances);
+}
+
+pub fn load_mesh(path: &PathBuf) -> anyhow::Result<PathBuf> {
+    log::info!("Loading a mesh from {:?}", path);
+
+    fn calculate_hash(t: &PathBuf) -> u64 {
+        let mut s = DefaultHasher::new();
+        t.hash(&mut s);
+        s.finish()
+    }
+
+    let path_hash = match path.canonicalize() {
+        Ok(canonical) => calculate_hash(&canonical),
+        Err(_) => calculate_hash(path),
+    };
+
+    let cached_mesh_name = format!("{:8.8x}", path_hash);
+    let cached_mesh_path = PathBuf::from(format!("/cache/{}.mesh", cached_mesh_name));
+
+    if !canonical_path_from_vfs(&cached_mesh_path).map_or(false, |path| path.exists()) {
+        if let Ok(()) =
+            kajiya_asset_pipe::process_mesh_asset(kajiya_asset_pipe::MeshAssetProcessParams {
+                path: path.clone(),
+                output_name: cached_mesh_name,
+                scale: 1.0,
+            })
+        {
+            return Ok(cached_mesh_path);
+        }
+    }
+
+    Err(anyhow::Error::msg(format!(
+        "Couldn't load mesh from source: {:?}",
+        path,
+    )))
 }
