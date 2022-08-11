@@ -11,8 +11,8 @@ fn main() {
     App::new()
         .insert_resource(WindowDescriptor {
             title: "Bevy Kajiya Playground".to_string(),
-            width: 1024.,
-            height: 768.,
+            width: 1920.,
+            height: 1080.,
             resizable: false,
             mode: WindowMode::Windowed,
             ..Default::default()
