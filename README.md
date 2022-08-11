@@ -82,3 +82,17 @@ You must spawn exactly one camera.  Put this in your `setup` system:
         ..Default::default()
     });
 ```
+
+## Contribution
+Contributions are welcomed :) Long term plan is to replace the `KajiyaBlah` render and mesh types with bevy renderer-compatible types.
+
+Contributions shall comply with the Rust standard licensing model (MIT OR Apache 2.0) and therefore be dual licensed as described below, without any additional terms or conditions:
+
+### License
+
+This contribution is dual licensed under EITHER OF
+
+* Apache License, Version 2.0, ([LICENSE-APACHE](LICENSE-APACHE) or <http://www.apache.org/licenses/LICENSE-2.0>)
+* MIT license ([LICENSE-MIT](LICENSE-MIT) or <http://opensource.org/licenses/MIT>)
+
+at your option.
