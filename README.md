@@ -8,7 +8,7 @@
 
 Yes, you can visualize some bevy entities in ray-traced glory, but don't expect much else for now; there is a finite number of meshes that can be instanced and meshes cannot be removed from memory on despawn.  Expect some bugs and crashes!
 
-![alt text](https://github.com/seabassjh/bevy-kajiya/blob/main/assets/screenshots/screenshot.png)
+![alt text](https://github.com/seabassjh/bevy-kajiya/blob/integrate-kajiya-update/assets/screenshots/screenshot.png)
 
 # Example
 
