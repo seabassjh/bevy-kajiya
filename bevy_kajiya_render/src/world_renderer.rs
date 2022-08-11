@@ -1,9 +1,11 @@
+use std::path::PathBuf;
+
 use bevy::{prelude::*, utils::HashMap};
 use glam::{Affine3A, Vec3};
 use kajiya::{
     camera::{CameraLens, LookThroughCamera},
     frame_desc::WorldFrameDesc,
-    world_renderer::{InstanceHandle, MeshHandle},
+    world_renderer::{AddMeshOptions, InstanceHandle, MeshHandle},
 };
 
 use crate::{
@@ -96,7 +98,7 @@ pub fn update_world_renderer_view(
 }
 
 pub enum WorldRendererCommand {
-    AddMesh(String, kajiya::asset::mesh::TriangleMesh),
+    AddMesh(String, PathBuf),
     UpdateMesh(String),
     UpdateInstTransform(InstanceHandle, MeshTransform),
     AddInstance(Entity, MeshHandle, MeshTransform),
@@ -117,18 +119,12 @@ pub fn process_world_renderer_cmds(
 
     while let Some(command) = wr_command_queue.pop() {
         match command {
-            WorldRendererCommand::AddMesh(_mesh_src, _mesh) => {
-                todo!("World renderer new add mesh");
-                // let mesh_handle = world_renderer
-                //     .load_gltf_mesh(
-                //         AddMeshOptions::new(),
-                //         &mesh,
-                //     )
-                //     .expect(&format!(
-                //         "Kajiya error: load_gltf_mesh"
-                // ));
+            WorldRendererCommand::AddMesh(mesh_name, path) => {
+                let mesh_handle = world_renderer
+                    .add_baked_mesh(path, AddMeshOptions::new())
+                    .expect(&format!("Failed to add mesh '{}'", mesh_name));
 
-                // lm_map.insert(mesh_src.clone(), RenderMesh::Ready(mesh_handle));
+                lm_map.insert(mesh_name, RenderMesh::Ready(mesh_handle));
             }
             WorldRendererCommand::UpdateInstTransform(inst, transform) => {
                 let transform = Affine3A::from_scale_rotation_translation(
@@ -156,7 +152,7 @@ pub fn process_world_renderer_cmds(
                 if let Some(mut render_instance) = ri_map.get_mut(&entity) {
                     world_renderer.remove_instance(old_inst);
                     render_instance.instance = WRInstance::None;
-                    lm_map.insert(render_instance.mesh_source.clone(), RenderMesh::Empty);
+                    lm_map.insert(render_instance.mesh_name.clone(), RenderMesh::Empty);
                 }
             }
             WorldRendererCommand::SetEmissiveMultiplier(inst, value) => {

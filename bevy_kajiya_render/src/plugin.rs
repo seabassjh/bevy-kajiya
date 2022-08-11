@@ -1,3 +1,7 @@
+use std::fs;
+use std::io;
+use std::path::Path;
+
 use bevy::{
     app::{App, AppLabel, Plugin},
     ecs::schedule::ShouldRun,
@@ -12,8 +16,11 @@ use kajiya::{
     ui_renderer::UiRenderer,
     world_renderer::WorldRenderer,
 };
-use std::ops::{Deref, DerefMut};
 use std::sync::Mutex;
+use std::{
+    ops::{Deref, DerefMut},
+    path::PathBuf,
+};
 use turbosloth::LazyCache;
 
 use crate::render_resources::{
@@ -85,6 +92,15 @@ pub struct KajiyaRenderApp;
 #[derive(Default)]
 struct ScratchRenderWorld(World);
 
+fn clear_cache_dir<P: AsRef<Path>>(path: P) -> io::Result<()> {
+    for entry in fs::read_dir(path)? {
+        let entry = entry?;
+        let path = entry.path();
+        fs::remove_file(path)?;
+    }
+    Ok(())
+}
+
 impl Plugin for KajiyaRenderPlugin {
     /// Initializes the renderer, sets up the [`KajiyaRenderStage`](KajiyaRenderStage) and creates the rendering sub-app.
     fn build(&self, app: &mut App) {
@@ -93,6 +109,9 @@ impl Plugin for KajiyaRenderPlugin {
 
         // Game-specific assets in the current directory
         set_vfs_mount_point("/cache", "./cache");
+        set_vfs_mount_point("/meshes", "./assets/meshes");
+
+        clear_cache_dir(PathBuf::from("./cache")).expect("Couldn't clear cache directory");
 
         let WindowConfig {
             raw_window_handle,

@@ -4,7 +4,7 @@ use bevy_kajiya::{
     kajiya_render::{EnvironmentSettings, KajiyaCamera, KajiyaCameraBundle},
     BevyKajiyaPlugins,
 };
-use bevy_kajiya_render::KajiyaDescriptor;
+use bevy_kajiya_render::{KajiyaDescriptor, KajiyaMeshInstance, KajiyaMeshInstanceBundle};
 use dolly::prelude::{CameraRig, Position, Smooth, YawPitch};
 
 fn main() {
@@ -17,10 +17,7 @@ fn main() {
             mode: WindowMode::Windowed,
             ..Default::default()
         })
-        .insert_resource(KajiyaDescriptor {
-            scene_name: "car".to_string(),
-            ..Default::default()
-        })
+        .insert_resource(KajiyaDescriptor::default())
         .add_plugins(DefaultPlugins)
         .add_plugins(BevyKajiyaPlugins)
         .add_startup_system(setup_world)
@@ -55,16 +52,27 @@ fn setup_world(mut commands: Commands, windows: Res<Windows>) {
 
     commands.insert_resource(camera_rig);
 
-    // // Spawn a new "user" mesh instance with the "ring" mesh
-    // commands
-    //     .spawn_bundle(KajiyaMeshInstanceBundle {
-    //         mesh_instance: KajiyaMeshInstance {
-    //             mesh: KajiyaMesh::User("ring".to_string()),
-    //         },
-    //         transform: Transform::from_translation(Vec3::new(0.0, 1.0, 0.0)),
-    //         ..Default::default()
-    //     })
-    //     .insert(Rotator { ccw: true });
+    // Spawn a new mesh instance with the "336_lrm" (car) mesh
+    commands
+        .spawn_bundle(KajiyaMeshInstanceBundle {
+            mesh_instance: KajiyaMeshInstance {
+                mesh: "336_lrm".to_string(),
+                ..Default::default()
+            },
+            transform: Transform::from_translation(Vec3::new(0.0, -0.001, 0.0))
+                .with_scale(Vec3::splat(0.01)),
+            ..Default::default()
+        })
+        .insert(Rotator { ccw: true });
+
+    // Spawn a floor mesh
+    commands.spawn_bundle(KajiyaMeshInstanceBundle {
+        mesh_instance: KajiyaMeshInstance {
+            mesh: "floor".to_string(),
+            ..Default::default()
+        },
+        ..Default::default()
+    });
 }
 
 fn sun_move(
@@ -83,7 +91,7 @@ fn sun_move(
         env.sun_theta_phi.0 += mouse_sensitivity * mouse_delta.x;
         env.sun_theta_phi.1 += mouse_sensitivity * mouse_delta.y;
     } else {
-        let time_scale = 0.0005;
+        let time_scale = 0.0001;
         let theta = 180.0 * (time.time_since_startup().as_secs_f32() * time_scale).sin();
         let phi = 180.0 * (time.time_since_startup().as_secs_f32() * time_scale).sin();
         env.sun_theta_phi = (theta, phi);

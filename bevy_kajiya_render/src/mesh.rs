@@ -1,6 +1,12 @@
 use bevy::{math, prelude::*, utils::HashMap};
 use glam::{Quat, Vec3};
+use kajiya::backend::canonical_path_from_vfs;
 use kajiya::world_renderer::{InstanceHandle, MeshHandle};
+use std::{
+    collections::hash_map::DefaultHasher,
+    hash::{Hash, Hasher},
+    path::PathBuf,
+};
 
 use crate::{asset::register_unique_gltf_asset, plugin::RenderWorld};
 
@@ -117,66 +123,68 @@ pub struct MeshInstanceExtractedBundle {
 // TODO: query for KajiyaMeshInstance(s) and internal render entity accordingly
 // NOTE: don't forget to drain entities before next cycle to avoid entity duplicates
 pub fn extract_meshes(
-    mut commands: Commands,
+    query: Query<(Entity, &GlobalTransform, &KajiyaMeshInstance)>,
     mut render_world: ResMut<RenderWorld>,
     mut asset_server: ResMut<AssetServer>,
 ) {
-    let mesh_instances: Vec<MeshInstanceExtractedBundle> = vec![];
+    let mut mesh_instances: Vec<MeshInstanceExtractedBundle> = vec![];
 
-    // Extract any meshes instanced by the scene
-    while let Some((instance, instance_transform)) = render_world
-        .get_resource_mut::<RenderInstances>()
-        .unwrap()
-        .scene_mesh_instance_queue
-        .pop()
-    {
-        let mesh_name = instance.mesh;
+    for (entity, transform, mesh_instance) in query.iter() {
+        let (scale, rotation, position) = transform.to_scale_rotation_translation();
+        let position_decomp: (f32, f32, f32) = position.into();
+        let rotation_decomp: [f32; 4] = rotation.into();
+        let scale_decomp: (f32, f32, f32) = scale.into();
 
-        register_unique_gltf_asset(&mut asset_server, &mut render_world, &mesh_name);
+        register_unique_gltf_asset(&mut asset_server, &mut render_world, &mesh_instance.mesh);
 
-        let _entity = commands
-            .spawn_bundle(KajiyaMeshInstanceBundle {
-                mesh_instance: KajiyaMeshInstance {
-                    mesh: mesh_name.clone(),
-                    ..Default::default()
+        mesh_instances.push(MeshInstanceExtractedBundle {
+            mesh_instance: MeshInstanceExtracted {
+                instance_entity: entity,
+                mesh_name: mesh_instance.mesh.to_string(),
+                transform: MeshTransform {
+                    position: Vec3::from(position_decomp),
+                    rotation: Quat::from_array(rotation_decomp),
+                    scale: Vec3::from(scale_decomp),
                 },
-                transform: instance_transform,
-                ..Default::default()
-            })
-            .id();
-
-        let pos = instance_transform.translation;
-        let rot = instance_transform.rotation;
-        let scale = instance_transform.scale;
-        let _transform = MeshTransform {
-            position: Vec3::new(pos.x, pos.y, pos.z),
-            rotation: Quat::from_xyzw(rot.x, rot.y, rot.z, rot.w),
-            scale: Vec3::new(scale.x, scale.y, scale.z),
-        };
-
-        // match &mesh_instance.mesh {
-        //     KajiyaMesh::User(mesh_name) => {
-        //         mesh_instances.push(MeshInstanceExtractedBundle {
-        //             mesh_instance: MeshInstanceExtracted {
-        //                 instance_type: MeshInstanceType::UserInstanced(entity),
-        //                 mesh_name: mesh_name.to_string(),
-        //                 transform: (pos, rot),
-        //             },
-        //         });
-        //     }
-        //     KajiyaMesh::Scene(mesh_indx, mesh_name) => {
-        //         mesh_instances.push(MeshInstanceExtractedBundle {
-        //             mesh_instance: MeshInstanceExtracted {
-        //                 instance_type: MeshInstanceType::SceneInstanced(*mesh_indx),
-        //                 mesh_name: mesh_name.to_string(),
-        //                 transform: (pos, rot),
-        //             },
-        //         });
-        //     }
-        //     KajiyaMesh::None => {}
-        // }
+                emission: mesh_instance.emission,
+            },
+        });
     }
 
     render_world.spawn_batch(mesh_instances);
-    // commands.spawn_batch(mesh_instances);
+}
+
+pub fn load_mesh(path: &PathBuf) -> anyhow::Result<PathBuf> {
+    log::info!("Loading a mesh from {:?}", path);
+
+    fn calculate_hash(t: &PathBuf) -> u64 {
+        let mut s = DefaultHasher::new();
+        t.hash(&mut s);
+        s.finish()
+    }
+
+    let path_hash = match path.canonicalize() {
+        Ok(canonical) => calculate_hash(&canonical),
+        Err(_) => calculate_hash(path),
+    };
+
+    let cached_mesh_name = format!("{:8.8x}", path_hash);
+    let cached_mesh_path = PathBuf::from(format!("/cache/{}.mesh", cached_mesh_name));
+
+    if !canonical_path_from_vfs(&cached_mesh_path).map_or(false, |path| path.exists()) {
+        if let Ok(()) =
+            kajiya_asset_pipe::process_mesh_asset(kajiya_asset_pipe::MeshAssetProcessParams {
+                path: path.clone(),
+                output_name: cached_mesh_name,
+                scale: 1.0,
+            })
+        {
+            return Ok(cached_mesh_path);
+        }
+    }
+
+    Err(anyhow::Error::msg(format!(
+        "Couldn't load mesh from source: {:?}",
+        path,
+    )))
 }

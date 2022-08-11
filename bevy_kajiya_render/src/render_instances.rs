@@ -1,23 +1,22 @@
+use std::path::PathBuf;
+
 use bevy::{
     prelude::*,
     tasks::{AsyncComputeTaskPool, Task},
     utils::HashMap,
 };
-use kajiya::{
-    asset::mesh::TriangleMesh,
-    world_renderer::{InstanceHandle, MeshHandle},
-};
+use kajiya::world_renderer::{InstanceHandle, MeshHandle};
 
 use crate::{
     asset::{GltfMeshAsset, MeshAssetsState},
-    mesh::{MeshInstanceExtracted, MeshTransform},
+    mesh::{load_mesh, MeshInstanceExtracted, MeshTransform},
     world_renderer::{WRCommandQueue, WorldRendererCommand},
 };
 use futures_lite::future;
 
 pub enum RenderMesh {
     Empty,
-    Queued(String, Task<TriangleMesh>),
+    Queued(String, Task<std::result::Result<PathBuf, anyhow::Error>>),
     GLTFLoaded,
     Ready(MeshHandle),
     Update,
@@ -32,7 +31,7 @@ pub enum WRInstance {
 
 #[derive(Clone)]
 pub struct RenderInstance {
-    pub mesh_source: String,
+    pub mesh_name: String,
     pub transform: MeshTransform,
     pub instance: WRInstance,
     pub active: bool,
@@ -58,7 +57,7 @@ pub fn process_renderer_instances(
 
             match render_instance.instance {
                 WRInstance::Ready(inst_handle) => {
-                    if let Some(RenderMesh::Update) = lm_map.get(&render_instance.mesh_source) {
+                    if let Some(RenderMesh::Update) = lm_map.get(&render_instance.mesh_name) {
                         wr_command_queue.push(WorldRendererCommand::ReplaceInstance(
                             inst_handle,
                             extracted_instance.instance_entity,
@@ -77,7 +76,7 @@ pub fn process_renderer_instances(
                 }
                 WRInstance::None => {
                     if let Some(RenderMesh::Ready(mesh_handle)) =
-                        lm_map.get(&render_instance.mesh_source)
+                        lm_map.get(&render_instance.mesh_name)
                     {
                         wr_command_queue.push(WorldRendererCommand::AddInstance(
                             extracted_instance.instance_entity,
@@ -92,7 +91,7 @@ pub fn process_renderer_instances(
         } else {
             // No associated render instance; add new render instance for entity in map
             let new_render_instance = RenderInstance {
-                mesh_source: extracted_instance.mesh_name.clone(),
+                mesh_name: extracted_instance.mesh_name.clone(),
                 transform: extracted_instance.transform,
                 instance: WRInstance::None,
                 active: true,
@@ -151,32 +150,24 @@ pub fn process_renderer_meshes(
         match mesh {
             RenderMesh::Empty => {
                 let mesh_src = mesh_src.clone();
-                let mesh_src1 = mesh_src.clone();
-                // let path: PathBuf = format!("assets/meshes/{}/scene.gltf", mesh_src).into();
+                let mesh_src_path: PathBuf =
+                    format!("assets/meshes/{}/scene.gltf", mesh_src).into();
 
-                let load_mesh_task = thread_pool.spawn(async move {
-                    // let tri_mesh = LoadGltfScene {
-                    //     path: path.clone(),
-                    //     scale: 1.0,
-                    //     rotation: Quat::IDENTITY,
-                    // }.load()
-                    // .expect(&format!(
-                    //     "Kajiya process_renderer_meshes error: could not find gltf {}",
-                    //     mesh_src
-                    // ));
-                    // tri_mesh
-                    todo!("Load gltf in new way");
-                });
+                let load_mesh_task = thread_pool.spawn(async move { load_mesh(&mesh_src_path) });
 
-                *mesh = RenderMesh::Queued(mesh_src1, load_mesh_task);
+                *mesh = RenderMesh::Queued(mesh_src, load_mesh_task);
             }
             RenderMesh::Queued(mesh_src, load_mesh_task) => {
-                if let Some(tri_mesh) = future::block_on(future::poll_once(load_mesh_task)) {
-                    wr_command_queue.push(WorldRendererCommand::AddMesh(
-                        mesh_src.to_string(),
-                        tri_mesh,
-                    ));
-                    *mesh = RenderMesh::GLTFLoaded;
+                match future::block_on(future::poll_once(load_mesh_task)) {
+                    Some(Ok(path)) => {
+                        wr_command_queue
+                            .push(WorldRendererCommand::AddMesh(mesh_src.to_string(), path));
+                        *mesh = RenderMesh::GLTFLoaded;
+                    }
+                    Some(Err(e)) => {
+                        panic!("Error encountered during load_mesh task: {}", e);
+                    }
+                    _ => {}
                 }
             }
             RenderMesh::Ready(_) => {
@@ -187,7 +178,6 @@ pub fn process_renderer_meshes(
                     println!("Found changed mesh asset {:?}", mesh_assets.meshes_changed);
 
                     mesh_assets.meshes_changed.remove(&mesh_asset);
-                    // println!("Found changed {:?}", mesh_assets.meshes_changed);
                 }
             }
             _ => {}
