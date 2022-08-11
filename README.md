@@ -19,6 +19,14 @@ cargo run --example view
 
 # Usage
 
+Make sure to clone kajiya.  It is recommended to to point this project to [this commit](https://github.com/EmbarkStudios/kajiya/tree/6145eaaa1814047cc544be53adb8eb6cc348948d) of kajiya, and that your file structure looks like
+```
+.
+└── projects/
+    ├── bevy-kajiya/
+    └── kajiya/
+```
+
 You must disable the default bevy renderer.  Additionally, a patch is required for ray-tracing extensions. Put the following in your top-level `Cargo.toml`:
 
 ```
@@ -44,7 +52,7 @@ spirv_headers = { git = "https://github.com/gfx-rs/rspirv.git", rev = "dae552c" 
         ..Default::default()
     })
 ```
-2. Configure Kajiya renderer user settings and pass them to the plugin:
+2. Configure kajiya renderer user settings and pass them to the plugin:
 ```
     .insert_resource(KajiyaDescriptor::default())
 ```
