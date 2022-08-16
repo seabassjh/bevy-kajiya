@@ -40,6 +40,8 @@ rspirv = { git = "https://github.com/gfx-rs/rspirv.git", rev = "dae552c" }
 spirv_headers = { git = "https://github.com/gfx-rs/rspirv.git", rev = "dae552c" }
 ```
 
+Lastly, the `.dll`s and `.so` libraries will need to be copied to the root of your bevy project, if you plan to pull in this crate as an external dependency.
+
 `kajiya` does not support resizable windows yet.  The window might be larger than anticipated due to the OS' DPI settings, so you may have to decrease the requested resolution.  
 
 1. Make sure to use these window settings (resolution can be changed):
