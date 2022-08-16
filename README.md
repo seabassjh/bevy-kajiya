@@ -22,7 +22,7 @@ cargo run --example view
 Make sure to clone kajiya.  It is recommended to to point this project to [this commit](https://github.com/EmbarkStudios/kajiya/tree/6145eaaa1814047cc544be53adb8eb6cc348948d) of kajiya, and that your file structure looks like
 ```
 .
-└── projects/
+└── my_project/
     ├── bevy-kajiya/
     └── kajiya/
 ```
@@ -40,7 +40,9 @@ rspirv = { git = "https://github.com/gfx-rs/rspirv.git", rev = "dae552c" }
 spirv_headers = { git = "https://github.com/gfx-rs/rspirv.git", rev = "dae552c" }
 ```
 
-Lastly, the `.dll`s and `.so` libraries will need to be copied to the root of your bevy project, if you plan to pull in this crate as an external dependency.
+Lastly, the `.dll` and `.so` libraries will need to be copied to the root of your bevy project, if you plan to pull in this crate as an external dependency.
+
+## Bevy Setup
 
 `kajiya` does not support resizable windows yet.  The window might be larger than anticipated due to the OS' DPI settings, so you may have to decrease the requested resolution.  
 
